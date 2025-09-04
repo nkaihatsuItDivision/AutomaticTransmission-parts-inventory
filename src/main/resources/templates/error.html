@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>エラー - AT部品在庫管理システム</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- カスタムCSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .error-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.3);
+            padding: 3rem;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .error-icon {
+            font-size: 5rem;
+            color: #dc3545;
+            margin-bottom: 1.5rem;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-30px);
+            }
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+        .error-title {
+            color: #dc3545;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border-left: 5px solid #dc3545;
+        }
+        .btn-back {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: white;
+        }
+        .suggestions {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border-left: 5px solid #17a2b8;
+        }
+        .suggestions h6 {
+            color: #0c5460;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .suggestions ul {
+            text-align: left;
+            margin: 0;
+        }
+        .suggestions li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-container">
+            <!-- エラーアイコン -->
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            
+            <!-- エラータイトル -->
+            <h1 class="error-title">システムエラーが発生しました</h1>
+            
+            <!-- エラーメッセージ -->
+            <div class="error-message" th:if="${errorMessage}">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>エラー詳細：</strong>
+                <span th:text="${errorMessage}">予期しないエラーが発生しました。</span>
+            </div>
+            
+            <!-- デフォルトメッセージ（errorMessageがない場合） -->
+            <div class="error-message" th:if="${errorMessage == null}">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>申し訳ございません。</strong>
+                システムで予期しないエラーが発生しました。
+            </div>
+            
+            <!-- 対処方法の提案 -->
+            <div class="suggestions">
+                <h6><i class="fas fa-lightbulb me-2"></i>こんな場合はお試しください</h6>
+                <ul>
+                    <li>ブラウザの更新ボタン（F5）を押してページを再読み込みしてください</li>
+                    <li>少し時間をおいてから再度お試しください</li>
+                    <li>入力内容に不正な文字が含まれていないかご確認ください</li>
+                    <li>部品番号が既に登録されている場合は、別の番号をお試しください</li>
+                </ul>
+            </div>
+            
+            <!-- 戻るボタン群 -->
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <!-- 一覧画面に戻る -->
+                <a href="/parts" class="btn btn-back">
+                    <i class="fas fa-list me-2"></i>部品一覧に戻る
+                </a>
+                
+                <!-- 新規登録画面に戻る -->
+                <a href="/parts/new" class="btn btn-back">
+                    <i class="fas fa-plus me-2"></i>新規登録画面
+                </a>
+                
+                <!-- ページを更新 -->
+                <button onclick="window.location.reload()" class="btn btn-back">
+                    <i class="fas fa-redo me-2"></i>ページを更新
+                </button>
+            </div>
+            
+            <!-- システム情報 -->
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    発生日時: <span id="currentTime"></span>
+                </small>
+            </div>
+            
+            <!-- フッター -->
+            <div class="mt-4">
+                <small class="text-muted">
+                    AT部品在庫管理システム &copy; 2025<br>
+                    問題が継続する場合は、システム管理者にお問い合わせください。
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 現在時刻表示スクリプト -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const timeString = now.getFullYear() + '/' + 
+                              String(now.getMonth() + 1).padStart(2, '0') + '/' + 
+                              String(now.getDate()).padStart(2, '0') + ' ' + 
+                              String(now.getHours()).padStart(2, '0') + ':' + 
+                              String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('currentTime').textContent = timeString;
+        });
+    </script>
+</body>
+</html>

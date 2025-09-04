@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AT部品在庫管理システム - 部品一覧</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- カスタムCSS -->
+    <style>
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .search-card {
+            border: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+        .parts-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .parts-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem;
+        }
+        .parts-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .parts-table tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        .btn-action {
+            margin: 0 2px;
+            border-radius: 8px;
+        }
+        .price-display {
+            font-weight: 600;
+            color: #28a745;
+        }
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- ヘッダー -->
+    <div class="header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">
+                        <i class="fas fa-cogs me-3"></i>
+                        AT部品在庫管理システム
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">オートマチックトランスミッション部品の一元管理</p>
+                </div>
+                <div class="col-auto">
+                    <a href="/parts/new" class="btn btn-light btn-lg">
+                        <i class="fas fa-plus me-2"></i>新規部品登録
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+		<!-- メッセージ表示 -->
+		<div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+		    <i class="fas fa-check-circle me-2"></i>
+		    <span th:text="${successMessage}"></span>
+		    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+
+		<div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+		    <i class="fas fa-exclamation-triangle me-2"></i>
+		    <span th:text="${errorMessage}"></span>
+		    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+
+		<div th:if="${infoMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+		    <i class="fas fa-info-circle me-2"></i>
+		    <span th:text="${infoMessage}"></span>
+		    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+
+		<!-- エラー詳細表示 -->
+		<div th:if="${errorDetails}" class="alert alert-warning">
+		    <h6><i class="fas fa-exclamation-triangle me-2"></i>エラー詳細:</h6>
+		    <ul class="mb-0">
+		        <li th:each="error : ${errorDetails}" th:text="${error}"></li>
+		    </ul>
+		</div>
+
+		<!-- スキップ詳細表示 -->
+		<div th:if="${skipDetails}" class="alert alert-secondary">
+		    <h6><i class="fas fa-info-circle me-2"></i>スキップされた行:</h6>
+		    <ul class="mb-0">
+		        <li th:each="skip : ${skipDetails}" th:text="${skip}"></li>
+		    </ul>
+		</div>
+		<!-- CSV一括処理アクション -->
+		<div class="card search-card mb-4">
+		    <div class="card-body">
+		        <div class="row align-items-center">
+		            <div class="col-md-8">
+		                <h6 class="text-primary mb-2 mb-md-0">
+		                    <i class="fas fa-file-csv me-2"></i>CSV一括処理
+		                </h6>
+		                <p class="text-muted small mb-0">部品データのエクスポート・インポートが可能です</p>
+		            </div>
+		            <div class="col-md-4 text-md-end">
+		                <div class="btn-group" role="group">
+		                    <a href="/parts/export/csv" class="btn btn-outline-success">
+		                        <i class="fas fa-download me-1"></i>CSV エクスポート
+		                    </a>
+		                    <a href="/parts/import/csv" class="btn btn-outline-info">
+		                        <i class="fas fa-upload me-1"></i>CSV インポート
+		                    </a>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+        <!-- 検索フォーム -->
+        <div class="card search-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-search me-2"></i>部品検索
+                </h5>
+                <form action="/parts/search" method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="partName" class="form-label">部品名</label>
+                        <input type="text" class="form-control" id="partName" name="partName" 
+                               placeholder="部品名で検索">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="manufacturer" class="form-label">メーカー</label>
+                        <input type="text" class="form-control" id="manufacturer" name="manufacturer" 
+                               placeholder="メーカー名で検索">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="minPrice" class="form-label">最低価格</label>
+                        <input type="number" class="form-control" id="minPrice" name="minPrice" 
+                               placeholder="0" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="maxPrice" class="form-label">最高価格</label>
+                        <input type="number" class="form-control" id="maxPrice" name="maxPrice" 
+                               placeholder="999999" step="0.01">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>検索
+                        </button>
+                    </div>
+                </form>
+                <div class="mt-2">
+                    <a href="/parts" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-undo me-1"></i>検索解除
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 部品一覧テーブル -->
+        <div class="card parts-table">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">部品一覧</h5>
+                        <small class="text-muted" th:text="'全 ' + ${parts.size()} + ' 件の部品'">全 0 件の部品</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- 部品データがある場合 -->
+                <div th:if="${parts != null and !parts.empty}">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>部品番号</th>
+                                    <th>部品名</th>
+                                    <th>価格</th>
+                                    <th>メーカー</th>
+                                    <th>説明</th>
+                                    <th>登録日時</th>
+                                    <th class="text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="part : ${parts}">
+                                    <td>
+                                        <strong th:text="${part.partNumber}">AT001</strong>
+                                    </td>
+                                    <td th:text="${part.partName}">トルクコンバーター</td>
+                                    <td>
+                                        <span class="price-display">
+                                            ¥<span th:text="${#numbers.formatDecimal(part.price, 1, 0)}">50,000</span>
+                                        </span>
+                                    </td>
+                                    <td th:text="${part.manufacturer ?: '-'}">AISIN</td>
+                                    <td>
+                                        <span th:if="${part.description != null and !part.description.empty}"
+                                              th:text="${#strings.abbreviate(part.description, 30)}">
+                                            詳細説明文...
+                                        </span>
+                                        <span th:if="${part.description == null or part.description.empty}"
+                                              class="text-muted">-</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(part.createdAt, 'yyyy/MM/dd HH:mm')}">
+                                        2024/09/04 10:30
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <!-- 詳細表示ボタン -->
+                                            <a th:href="@{/parts/{id}(id=${part.id})}" 
+                                               class="btn btn-outline-info btn-sm btn-action" 
+                                               title="詳細表示">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <!-- 編集ボタン -->
+                                            <a th:href="@{/parts/{id}/edit(id=${part.id})}" 
+                                               class="btn btn-outline-warning btn-sm btn-action" 
+                                               title="編集">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <!-- 削除ボタン -->
+                                            <form th:action="@{/parts/{id}/delete(id=${part.id})}" 
+                                                  method="post" 
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('本当に削除しますか？\n部品番号: ' + [[${part.partNumber}]])">
+                                                <button type="submit" 
+                                                        class="btn btn-outline-danger btn-sm btn-action" 
+                                                        title="削除">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 部品データが空の場合 -->
+                <div th:if="${parts == null or parts.empty}" class="no-data">
+                    <i class="fas fa-box-open"></i>
+                    <h5>部品データが見つかりません</h5>
+                    <p class="mb-3">現在、登録された部品はありません。</p>
+                    <a href="/parts/new" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>最初の部品を登録
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="text-center mt-5 mb-3">
+            <small class="text-muted">AT部品在庫管理システム &copy; 2025</small>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

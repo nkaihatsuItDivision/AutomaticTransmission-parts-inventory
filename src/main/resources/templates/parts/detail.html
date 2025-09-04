@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'部品詳細: ' + ${part.partName}">部品詳細 - AT部品在庫管理システム</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- カスタムCSS -->
+    <style>
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .detail-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .detail-header {
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .part-title {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .part-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .info-value {
+            font-size: 1.1rem;
+            color: #212529;
+        }
+        .price-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #28a745;
+        }
+        .description-card {
+            background: #e3f2fd;
+            border: none;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        .description-card .card-header {
+            background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 1rem 1.5rem;
+        }
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: white;
+        }
+        .btn-warning-custom {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+        .btn-warning-custom:hover {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: white;
+        }
+        .btn-danger-custom {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+        .btn-danger-custom:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: white;
+        }
+        .btn-secondary-custom {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+        .btn-secondary-custom:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: white;
+        }
+        .timestamp-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        .no-description {
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
+        @media (max-width: 768px) {
+            .btn-group-mobile {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .btn-group-mobile .btn {
+                margin: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- ヘッダー -->
+    <div class="header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">
+                        <i class="fas fa-info-circle me-3"></i>
+                        部品詳細情報
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">登録されている部品の詳細を確認できます</p>
+                </div>
+                <div class="col-auto">
+                    <a href="/parts" class="btn btn-light btn-lg">
+                        <i class="fas fa-list me-2"></i>部品一覧に戻る
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 詳細カード -->
+        <div class="detail-card">
+            <!-- 部品ヘッダー -->
+            <div class="detail-header text-center">
+                <div class="part-title" th:text="${part.partName}">トルクコンバーター</div>
+                <div class="part-number">
+                    <i class="fas fa-barcode me-2"></i>
+                    <span th:text="${part.partNumber}">AT001</span>
+                </div>
+            </div>
+
+            <!-- 基本情報グリッド -->
+            <div class="info-grid">
+                <!-- 価格 -->
+                <div class="info-item text-center">
+                    <label class="info-label">
+                        <i class="fas fa-yen-sign me-2"></i>価格
+                    </label>
+                    <div class="price-display">
+                        ¥<span th:text="${#numbers.formatDecimal(part.price, 1, 0)}">50,000</span>
+                    </div>
+                </div>
+
+                <!-- メーカー -->
+                <div class="info-item">
+                    <label class="info-label">
+                        <i class="fas fa-industry me-2"></i>メーカー
+                    </label>
+                    <div class="info-value" th:text="${part.manufacturer ?: '未設定'}">AISIN</div>
+                </div>
+
+                <!-- 登録日時 -->
+                <div class="info-item">
+                    <label class="info-label">
+                        <i class="fas fa-calendar-plus me-2"></i>登録日時
+                    </label>
+                    <div class="info-value" th:text="${#temporals.format(part.createdAt, 'yyyy年MM月dd日 HH:mm')}">
+                        2024年09月04日 10:30
+                    </div>
+                </div>
+
+                <!-- 最終更新日時 -->
+                <div class="info-item" th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
+                    <label class="info-label">
+                        <i class="fas fa-edit me-2"></i>最終更新日時
+                    </label>
+                    <div class="info-value" th:text="${#temporals.format(part.updatedAt, 'yyyy年MM月dd日 HH:mm')}">
+                        2024年09月04日 12:15
+                    </div>
+                </div>
+            </div>
+
+            <!-- 説明カード -->
+            <div class="description-card card" th:if="${part.description != null and !part.description.empty}">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment-alt me-2"></i>説明
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text" th:text="${part.description}" style="white-space: pre-wrap;">
+                        CVT（無段変速機）用のトルクコンバーターです。
+                        エンジンの回転をトランスミッションに伝達する重要な部品です。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 説明がない場合 -->
+            <div class="no-description" th:if="${part.description == null or part.description.empty}">
+                <i class="fas fa-comment-slash fa-2x mb-3"></i>
+                <p>この部品には説明が登録されていません。</p>
+            </div>
+
+            <!-- タイムスタンプ情報 -->
+            <div class="timestamp-info">
+                <small>
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>データベースID:</strong> <span th:text="${part.id}">1</span> |
+                    <strong>登録:</strong> <span th:text="${#temporals.format(part.createdAt, 'yyyy/MM/dd HH:mm:ss')}">2024/09/04 10:30:45</span>
+                    <span th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
+                        | <strong>更新:</strong> <span th:text="${#temporals.format(part.updatedAt, 'yyyy/MM/dd HH:mm:ss')}">2024/09/04 12:15:30</span>
+                    </span>
+                </small>
+            </div>
+
+            <!-- アクションボタン -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <div class="btn-group-mobile d-md-block">
+                        <!-- 編集ボタン -->
+                        <a th:href="@{/parts/{id}/edit(id=${part.id})}" class="btn btn-warning-custom">
+                            <i class="fas fa-edit me-2"></i>編集する
+                        </a>
+                        
+                        <!-- 削除ボタン -->
+                        <form th:action="@{/parts/{id}/delete(id=${part.id})}" 
+                              method="post" 
+                              style="display: inline;"
+                              onsubmit="return confirmDelete()">
+                            <button type="submit" class="btn btn-danger-custom">
+                                <i class="fas fa-trash me-2"></i>削除する
+                            </button>
+                        </form>
+                        
+                        <!-- 一覧に戻るボタン -->
+                        <a href="/parts" class="btn btn-secondary-custom">
+                            <i class="fas fa-list me-2"></i>一覧に戻る
+                        </a>
+                        
+                        <!-- 新規登録ボタン -->
+                        <a href="/parts/new" class="btn btn-custom">
+                            <i class="fas fa-plus me-2"></i>新規登録
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="text-center mt-5 mb-3">
+            <small class="text-muted">AT部品在庫管理システム &copy; 2025</small>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- カスタムJavaScript -->
+    <script th:inline="javascript">
+        // 削除確認ダイアログ
+        function confirmDelete() {
+            const partName = [[${part.partName}]];
+            const partNumber = [[${part.partNumber}]];
+            
+            const message = `本当にこの部品を削除しますか？\n\n` +
+                          `部品名: ${partName}\n` +
+                          `部品番号: ${partNumber}\n\n` +
+                          `削除した部品は復元できません。`;
+            
+            return confirm(message);
+        }
+
+        // ページロード時の処理
+        document.addEventListener('DOMContentLoaded', function() {
+            // スムーズスクロール
+            const buttons = document.querySelectorAll('a[href^="#"]');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
