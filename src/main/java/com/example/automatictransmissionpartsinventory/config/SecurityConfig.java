@@ -1,121 +1,139 @@
 package com.example.automatictransmissionpartsinventory.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Spring Security設定クラス
- * Phase 8.2: ユーザー認証機能の実装
+ * AT部品在庫管理システム - Phase 8.2-2 完全対応版
+ * 
+ * セキュリティ設定:
+ * - BCryptPasswordEncoder による パスワード暗号化
+ * - ロールベースアクセス制御（RBAC）
+ * - メソッドレベルセキュリティ（@PreAuthorize有効化）
+ * - フォームログイン認証
+ * - ログアウト機能
+ * 
+ * アクセス制御:
+ * - /admin/** → ROLE_ADMIN のみ
+ * - /parts/export/** → ROLE_ADMIN のみ
+ * - /parts/import/** → ROLE_ADMIN のみ
+ * - その他 → 認証済みユーザー
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // @PreAuthorize を有効化（Phase 8.2-2 追加）
 public class SecurityConfig {
-    
-    @Autowired
-    private UserDetailsService userDetailsService;
-    
+
     /**
-     * パスワードエンコーダーの設定
-     * BCryptを使用してパスワードを安全に暗号化
+     * パスワードエンコーダーのBean定義
+     * BCryptアルゴリズムによる安全なパスワードハッシュ化
+     * 
+     * @return BCryptPasswordEncoder インスタンス
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        // テスト用：平文パスワード
-//        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
-//    }
-    
+
     /**
-     * データベース認証プロバイダーの設定
-     * UserDetailsServiceとPasswordEncoderを連携
-     */
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
-    
-    /**
-     * 認証マネージャーの設定
-     */
-    @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
-    
-    /**
-     * セキュリティフィルターチェーンの設定
-     * 認証・認可ルールとログイン・ログアウト設定
+     * HTTP セキュリティ設定
+     * URL別アクセス制御・認証・ログアウト設定
+     * 
+     * @param http HttpSecurity インスタンス
+     * @return SecurityFilterChain
+     * @throws Exception 設定エラー
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 認証プロバイダーの設定
-            .authenticationProvider(authenticationProvider())
-            
-            // CSRF保護の設定（開発段階では無効化、本番では有効推奨）
-            .csrf(csrf -> csrf.disable())
-            
-            // 認可設定：どのURLにアクセス許可するか
+            // URL別アクセス制御設定
             .authorizeHttpRequests(authz -> authz
-                // 静的リソース（CSS、JS、画像）は認証不要
+                // 静的リソースは認証不要
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 
-                // ログイン・ログアウト関連は認証不要
-                .requestMatchers("/login", "/logout").permitAll()
-                
-                // 管理者専用機能（今後実装予定）
+                // 管理者専用機能 - ROLE_ADMIN のみアクセス可能（Phase 8.2-2 強化）
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 
-                // CSV機能は管理者のみ
-                .requestMatchers("/parts/export/**", "/parts/import/**").hasRole("ADMIN")
+                // CSV機能 - ROLE_ADMIN のみアクセス可能（Phase 8.2-1 で実装済み）
+                .requestMatchers("/parts/export/**").hasRole("ADMIN")
+                .requestMatchers("/parts/import/**").hasRole("ADMIN")
                 
-                // その他全てのURLは認証必要
+                // 管理者機能のAPI（将来の拡張用）
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                
+                // 部品管理機能 - 認証済みユーザーならアクセス可能
+                .requestMatchers("/parts/**").authenticated()
+                
+                // その他すべてのリクエスト - 認証が必要
                 .anyRequest().authenticated()
             )
             
-            // ログイン設定
+            // フォームログイン設定
             .formLogin(form -> form
-                //.loginPage("/login")  // カスタムログイン画面（Step 4で作成予定）
-                .defaultSuccessUrl("/parts", true)  // ログイン成功後のリダイレクト先
-                .failureUrl("/login?error=true")    // ログイン失敗時のリダイレクト先
-                .usernameParameter("username")      // ユーザー名パラメータ名
-                .passwordParameter("password")      // パスワードパラメータ名
-                .permitAll()
+                // .loginPage("/login") // カスタムログインページは未実装のためコメントアウト
+                .loginProcessingUrl("/login")
+                .defaultSuccessUrl("/parts", true) // ログイン成功後のリダイレクト先
+                .failureUrl("/login?error=true") // ログイン失敗時のリダイレクト先
+                .usernameParameter("username") // ユーザー名パラメータ名
+                .passwordParameter("password") // パスワードパラメータ名
+                .permitAll() // ログインページは誰でもアクセス可能
             )
             
             // ログアウト設定
             .logout(logout -> logout
-                .logoutUrl("/logout")              // ログアウトURL
-                .logoutSuccessUrl("/login?logout") // ログアウト成功後のリダイレクト先
-                .invalidateHttpSession(true)      // セッション無効化
-                .deleteCookies("JSESSIONID")       // セッションCookie削除
-                .permitAll()
+                .logoutUrl("/logout") // ログアウトURL
+                .logoutSuccessUrl("/login?logout=true") // ログアウト成功後のリダイレクト先
+                .invalidateHttpSession(true) // セッション無効化
+                .deleteCookies("JSESSIONID") // セッションCookie削除
+                .clearAuthentication(true) // 認証情報クリア
+                .permitAll() // ログアウトは誰でも実行可能
             )
             
-            // セッション管理
+            // セッション管理設定
             .sessionManagement(session -> session
-                .maximumSessions(1)          // 同時ログイン数制限
-                .maxSessionsPreventsLogin(false)  // 既存セッション無効化
-            );
+                .maximumSessions(1) // 同時セッション数制限
+                .maxSessionsPreventsLogin(false) // 新しいログインが古いセッションを無効化
+            )
             
+            // CSRF設定（開発時は無効化、本番では有効化推奨）
+            .csrf(csrf -> csrf.disable())
+            
+            // セキュリティヘッダー設定
+            .headers(headers -> headers
+                .frameOptions().deny() // Clickjacking対策
+                .contentTypeOptions().and() // MIME sniffing対策
+                .httpStrictTransportSecurity().and() // HTTPS強制（本番環境）
+            );
+
         return http.build();
     }
 }
+
+    /**
+     * 権限設定の詳細説明
+     * 
+     * ROLE_ADMIN:
+     * - 全機能へのアクセス権限
+     * - 管理者ダッシュボード（/admin）
+     * - ユーザー管理（/admin/users）
+     * - CSV インポート・エクスポート
+     * - システム設定（/admin/settings）
+     * 
+     * ROLE_USER:
+     * - 基本的な部品管理機能のみ
+     * - 部品一覧・詳細表示
+     * - 部品検索
+     * - 管理者機能への アクセス拒否（403 Forbidden）
+     * 
+     * @PreAuthorize アノテーション:
+     * - AdminController で使用
+     * - @EnableMethodSecurity で有効化
+     * - メソッドレベルでの詳細なアクセス制御
+     */

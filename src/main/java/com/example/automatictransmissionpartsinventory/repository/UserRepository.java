@@ -57,7 +57,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     List<User> findByEnabledFalse();
     
+    
+// // 権限別ユーザー数カウント用メソッドを追加
+//    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r.roleName = :roleName")
+//    long countByRoleName(@Param("roleName") String roleName);
     /**
+     * 
+     * 
      * 指定した権限を持つユーザーを検索
      * @param roleName 権限名（例: "ROLE_ADMIN"）
      * @return 該当する権限を持つユーザーのリスト
@@ -86,4 +92,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r.roleName = 'ROLE_USER'")
     List<User> findRegularUsers();
+    
+
+/**
+     * 指定した権限を持つユーザーの数をカウント（Phase 8.2-2 追加）
+     * 管理者ダッシュボードの統計表示で使用
+     * @param roleName 権限名（例: "ROLE_ADMIN", "ROLE_USER"）
+     * @return 該当する権限を持つユーザー数
+     */
+    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r.roleName = :roleName")
+    long countByRoleName(@Param("roleName") String roleName);
 }
