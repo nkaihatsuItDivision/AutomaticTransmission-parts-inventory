@@ -509,15 +509,19 @@ public class AutomaticPartController {
   * GET /parts/advanced-search
   */
  @GetMapping("/advanced-search")
- public String showAdvancedSearch(Model model, AdvancedSearchCriteria criteria) {
-     log.info("高度検索画面表示開始");
+ public String showAdvancedSearch(Model model, @ModelAttribute AdvancedSearchCriteria criteria) {
+     log.info("高度検索画面表示開始: {}", criteria);
      
      try {
-         // 検索条件が指定されている場合は検索実行
-         if (!criteria.isEmpty()) {
-             log.info("検索条件が指定されているため、検索を実行します: {}", criteria);
+         // ★★★ 修正: 検索条件が実際に指定されている場合のみ検索実行 ★★★
+         boolean hasActualSearchConditions = hasSearchConditions(criteria);
+         
+         if (hasActualSearchConditions) {
+             // デフォルト値設定（必須）
+             criteria.setDefaultPagination();
+             criteria.setDefaultSort();
              
-             // 高度検索の実行
+             // 検索を実行
              Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
              long totalCount = automaticPartService.countByAdvancedCriteria(criteria);
              
@@ -529,7 +533,7 @@ public class AutomaticPartController {
              model.addAttribute("searchExecuted", true);
              model.addAttribute("statistics", statistics);
              
-             // ページネーション情報
+             // ページネーション情報をModelに追加
              model.addAttribute("currentPage", criteria.getPage());
              model.addAttribute("totalPages", parts.getTotalPages());
              model.addAttribute("pageSize", criteria.getSize());
@@ -537,23 +541,11 @@ public class AutomaticPartController {
              model.addAttribute("hasPrevious", parts.hasPrevious());
              
              log.info("検索完了: 結果{}件, ページ{}/{}", totalCount, criteria.getPage() + 1, parts.getTotalPages());
-             
          } else {
-             log.info("検索条件未指定のため、検索フォームのみ表示");
+             // 初回表示：検索フォームのみ表示
+             log.info("初回表示: 検索フォームのみ表示");
              model.addAttribute("searchExecuted", false);
          }
-         
-         // カテゴリ一覧（検索条件用）
-         List<Category> categories = categoryService.findActiveCategories();
-         model.addAttribute("categories", categories);
-         
-         // 検索条件をモデルに追加
-         model.addAttribute("criteria", criteria);
-         
-         // ソート選択肢の設定
-         addSortOptionsToModel(model);
-         
-         log.info("高度検索画面表示完了");
          
      } catch (Exception e) {
          log.error("高度検索画面表示でエラーが発生しました", e);
@@ -561,7 +553,30 @@ public class AutomaticPartController {
          model.addAttribute("searchExecuted", false);
      }
      
+     // カテゴリ一覧（検索条件用）
+     List<Category> categories = categoryService.findActiveCategories();
+     model.addAttribute("categories", categories);
+     
+     // 検索条件をモデルに追加
+     model.addAttribute("criteria", criteria);
+     
+     // ソート選択肢の設定
+     addSortOptionsToModel(model);
+     
      return "parts/advanced-search";
+ }
+
+ // ★★★ 追加: 実際の検索条件があるかチェックするメソッド ★★★
+ private boolean hasSearchConditions(AdvancedSearchCriteria criteria) {
+     return (criteria.getPartNumber() != null && !criteria.getPartNumber().trim().isEmpty()) ||
+            (criteria.getPartName() != null && !criteria.getPartName().trim().isEmpty()) ||
+            (criteria.getManufacturer() != null && !criteria.getManufacturer().trim().isEmpty()) ||
+            criteria.getCategoryId() != null ||
+            criteria.getMinPrice() != null ||
+            criteria.getMaxPrice() != null ||
+            criteria.getCreatedAfter() != null ||
+            criteria.getCreatedBefore() != null ||
+            (criteria.getPage() != null && criteria.getPage() > 0); // ページネーション指定時も検索実行
  }
 
  /**
@@ -660,37 +675,40 @@ public class AutomaticPartController {
  }
 
  /**
-  * ソート選択肢をモデルに追加
+  * ソート選択肢をモデルに追加する補助メソッド
   */
  private void addSortOptionsToModel(Model model) {
      Map<String, String> sortOptions = new HashMap<>();
      sortOptions.put("updatedAt", "更新日時");
      sortOptions.put("createdAt", "登録日時");
-     sortOptions.put("partNumber", "部品番号");
      sortOptions.put("partName", "部品名");
+     sortOptions.put("partNumber", "部品番号");
      sortOptions.put("manufacturer", "メーカー");
      sortOptions.put("price", "価格");
-     sortOptions.put("categoryName", "カテゴリ");
+     
+     model.addAttribute("sortOptions", sortOptions);
      
      Map<String, String> sortOrderOptions = new HashMap<>();
      sortOrderOptions.put("DESC", "降順");
      sortOrderOptions.put("ASC", "昇順");
      
-     model.addAttribute("sortOptions", sortOptions);
      model.addAttribute("sortOrderOptions", sortOrderOptions);
  }
 
  /**
-  * エラーレスポンスの生成
+  * エラーレスポンス作成用の補助メソッド
   */
  private Map<String, Object> createErrorResponse(String message, Object details) {
-     Map<String, Object> errorResponse = new HashMap<>();
-     errorResponse.put("success", false);
-     errorResponse.put("error", message);
+     Map<String, Object> response = new HashMap<>();
+     response.put("success", false);
+     response.put("message", message);
+     response.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+     
      if (details != null) {
-         errorResponse.put("details", details);
+         response.put("details", details);
      }
-     return errorResponse;
+     
+     return response;
  }
 
  /**
@@ -717,51 +735,150 @@ public class AutomaticPartController {
      }
  }
  /**
-  * 高度検索のフォーム送信処理
+  * 高度検索のフォーム送信処理（デバッグ版）
+  * POST /parts/advanced-search
   */
  @PostMapping("/advanced-search")
- public String processAdvancedSearch(@ModelAttribute AdvancedSearchCriteria criteria, Model model) {
-     log.info("高度検索フォーム送信処理開始: {}", criteria);
+ public String processAdvancedSearch(AdvancedSearchCriteria criteria, Model model) {
+     log.info("=== 高度検索フォーム送信処理開始 ===");
+     log.info("受信したcriteria: {}", criteria);
+     log.info("受信時点でのpage: {}, size: {}", criteria.getPage(), criteria.getSize());
      
      try {
-         // デフォルト値の設定
+         // デフォルト値設定前の状態をログ出力
+         log.info("デフォルト値設定前: page={}, size={}", criteria.getPage(), criteria.getSize());
+         
+         // デフォルト値設定
          criteria.setDefaultSort();
          criteria.setDefaultPagination();
          
-         // 高度検索の実行
-         Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
+         // デフォルト値設定後の状態をログ出力
+         log.info("デフォルト値設定後: page={}, size={}", criteria.getPage(), criteria.getSize());
+         log.info("最終的なページネーション設定: page={}, size={}", criteria.getPage(), criteria.getSize());
          
-         // 結果をモデルに追加
-         model.addAttribute("parts", parts.getContent());
-         model.addAttribute("totalCount", parts.getTotalElements());
-         model.addAttribute("searchExecuted", true);
-         
-         // カテゴリ一覧（検索条件用）
-         List<Category> categories = categoryService.findActiveCategories();
-         model.addAttribute("categories", categories);
-         model.addAttribute("criteria", criteria);
-         
-         // 成功メッセージ
-         if (parts.getTotalElements() > 0) {
-             model.addAttribute("successMessage", 
-                 String.format("検索完了: %d件の部品が見つかりました", parts.getTotalElements()));
-         } else {
-             model.addAttribute("infoMessage", "検索条件に一致する部品が見つかりませんでした");
+         // 検索条件の妥当性チェック
+         Map<String, String> validationErrors = automaticPartService.validateSearchCriteria(criteria);
+         if (!validationErrors.isEmpty()) {
+             log.warn("検索条件に不正な値があります: {}", validationErrors);
+             model.addAttribute("errorMessage", "検索条件に不正な値があります");
+             model.addAttribute("validationErrors", validationErrors);
+             model.addAttribute("criteria", criteria);
+             return "parts/advanced-search";
          }
          
-         log.info("高度検索フォーム送信処理完了: {}件の結果", parts.getTotalElements());
+         // 高度検索の実行
+         log.info("検索実行前: criteria={}", criteria);
+         Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
+         long totalCount = automaticPartService.countByAdvancedCriteria(criteria);
+         
+         log.info("検索実行後:");
+         log.info("- parts.getContent().size(): {}", parts.getContent().size());
+         log.info("- parts.getSize(): {}", parts.getSize());
+         log.info("- parts.getNumber(): {}", parts.getNumber());
+         log.info("- parts.getTotalPages(): {}", parts.getTotalPages());
+         log.info("- totalCount: {}", totalCount);
+         
+         // 検索統計情報の取得
+         Map<String, Object> statistics = automaticPartService.getSearchStatistics(criteria);
+         
+         // 検索結果をモデルに追加
+         model.addAttribute("parts", parts.getContent());
+         model.addAttribute("totalCount", totalCount);
+         model.addAttribute("searchExecuted", true);
+         model.addAttribute("statistics", statistics);
+         
+         // ページネーション情報をモデルに追加
+         model.addAttribute("currentPage", criteria.getPage());
+         model.addAttribute("totalPages", parts.getTotalPages());
+         model.addAttribute("pageSize", criteria.getSize());
+         model.addAttribute("hasNext", parts.hasNext());
+         model.addAttribute("hasPrevious", parts.hasPrevious());
+         
+         log.info("モデルに設定した値:");
+         log.info("- currentPage: {}", criteria.getPage());
+         log.info("- totalPages: {}", parts.getTotalPages());
+         log.info("- pageSize: {}", criteria.getSize());
+         log.info("- parts.size(): {}", parts.getContent().size());
+         
+         log.info("検索完了: 結果{}件, ページ{}/{}, サイズ{}", 
+                 totalCount, criteria.getPage() + 1, parts.getTotalPages(), criteria.getSize());
          
      } catch (Exception e) {
-         log.error("高度検索フォーム送信処理で予期せぬエラーが発生", e);
+         log.error("高度検索処理でエラーが発生しました", e);
          model.addAttribute("errorMessage", "検索中にエラーが発生しました: " + e.getMessage());
-         
-         // エラー時もカテゴリ一覧を表示
-         List<Category> categories = categoryService.findActiveCategories();
-         model.addAttribute("categories", categories);
-         model.addAttribute("criteria", criteria);
          model.addAttribute("searchExecuted", false);
      }
      
+     try {
+         // カテゴリ一覧（検索条件用）
+         List<Category> categories = categoryService.findActiveCategories();
+         model.addAttribute("categories", categories);
+         
+         // 検索条件をモデルに追加
+         model.addAttribute("criteria", criteria);
+         log.info("最終的にモデルに設定したcriteria: {}", criteria);
+         
+         // ソート選択肢の設定
+         addSortOptionsToModel(model);
+         
+     } catch (Exception e) {
+         log.error("カテゴリ取得でエラー", e);
+     }
+     
+     log.info("=== 高度検索フォーム送信処理完了 ===");
      return "parts/advanced-search";
+ }
+ /**
+  * 検索条件付きCSVエクスポート処理
+  * GET /parts/export/csv/search
+  */
+ @GetMapping("/export/csv/search")
+ public ResponseEntity<byte[]> exportSearchResultsCSV(AdvancedSearchCriteria criteria) {
+     log.info("検索条件付きCSVエクスポート処理開始: {}", criteria);
+     
+     try {
+         // 検索条件の前処理
+         criteria.setDefaultSort();
+         criteria.setDefaultPagination();
+         
+         // 検索条件が空の場合は全データをエクスポート
+         byte[] csvData;
+         String baseFilename;
+         
+         if (criteria.isEmpty()) {
+             log.info("検索条件が空のため、全データをエクスポートします");
+             csvData = automaticPartCsvService.exportPartsToCSV();
+             baseFilename = "parts_all_export";
+         } else {
+             log.info("検索条件に基づいてフィルタリングされたデータをエクスポートします");
+             csvData = automaticPartCsvService.exportPartsToCSVBySearchCriteria(criteria);
+             baseFilename = "parts_search_export";
+         }
+         
+         // ファイル名に現在の日時を含める
+         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+         String filename = baseFilename + "_" + timestamp + ".csv";
+         
+         // レスポンスヘッダーの設定
+         HttpHeaders headers = new HttpHeaders();
+         headers.setContentType(MediaType.parseMediaType("text/csv; charset=UTF-8"));
+         headers.setContentDispositionFormData("attachment", filename);
+         headers.setContentLength(csvData.length);
+         
+         log.info("検索条件付きCSVエクスポート処理完了: ファイル名={}, サイズ={}bytes", filename, csvData.length);
+         
+         return ResponseEntity.ok()
+                 .headers(headers)
+                 .body(csvData);
+                 
+     } catch (ServiceException e) {
+         log.error("検索条件付きCSVエクスポート処理でビジネスエラーが発生: {}", e.getMessage());
+         return ResponseEntity.badRequest()
+                 .body(("エラー: " + e.getMessage()).getBytes());
+     } catch (Exception e) {
+         log.error("検索条件付きCSVエクスポート処理で予期せぬエラーが発生", e);
+         return ResponseEntity.internalServerError()
+                 .body("エクスポート処理に失敗しました".getBytes());
+     }
  }
 }

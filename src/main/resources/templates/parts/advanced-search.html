@@ -12,7 +12,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
-    <!-- カスタムCSS（部品一覧画面と完全統一） -->
+    <!-- カスタムCSS -->
     <style>
         .navbar-brand {
             font-weight: bold;
@@ -100,7 +100,7 @@
     </style>
 </head>
 <body class="bg-light">
-    <!-- ナビゲーションバー（権限制御付き） -->
+    <!-- ナビゲーションバー -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container-fluid">
             <a class="navbar-brand" href="/parts">
@@ -114,7 +114,7 @@
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <!-- 部品管理メニュー（全ユーザー） -->
+                    <!-- 部品管理メニュー -->
                     <li class="nav-item">
                         <a class="nav-link" href="/parts">
                             <i class="fas fa-list me-1"></i>
@@ -134,7 +134,7 @@
                         </a>
                     </li>
                     
-                    <!-- 管理者専用メニュー（管理者のみ表示） -->
+                    <!-- 管理者専用メニュー -->
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                         <a class="nav-link" href="/admin">
                             <i class="bi bi-speedometer2 me-1"></i>
@@ -177,12 +177,10 @@
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-1"></i>
                             <span sec:authentication="name">ユーザー</span>
-                            <!-- 権限バッジ表示 -->
                             <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
                             <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
                         </a>
                         <ul class="dropdown-menu">
-                            <!-- 管理者専用設定 -->
                             <li sec:authorize="hasRole('ADMIN')">
                                 <a class="dropdown-item" href="/admin/settings">
                                     <i class="bi bi-gear me-1"></i>システム設定
@@ -262,8 +260,12 @@
             </div>
             
             <div class="card-body">
-                <!-- 基本的なフォーム（モデル属性に依存しない） -->
                 <form id="advancedSearchForm" action="/parts/advanced-search" method="post">
+                    
+                    <!-- ページネーション用隠しフィールド -->
+                    <input type="hidden" id="pageField" name="page" th:value="${criteria != null ? criteria.page : 0}">
+                    <input type="hidden" id="sizeField" name="size" th:value="${criteria != null ? criteria.size : 20}">
+                    
                     <!-- 保存済み検索条件 -->
                     <div class="form-section" id="savedSearchSection" style="display: none;">
                         <h6 class="section-title">
@@ -338,14 +340,13 @@
                                 <div class="form-text">メーカー名を入力</div>
                             </div>
                             
-                            <!-- カテゴリ（シンプル版） -->
+                            <!-- カテゴリ -->
                             <div class="col-md-6 mb-3">
                                 <label for="categoryId" class="form-label">
                                     <i class="fas fa-folder me-1"></i>カテゴリ
                                 </label>
                                 <select class="form-control" id="categoryId" name="categoryId">
                                     <option value="">すべてのカテゴリ</option>
-                                    <!-- Thymeleafでカテゴリを動的に生成 -->
                                     <option th:each="category : ${categories}" 
                                             th:value="${category.id}" 
                                             th:text="${category.name}"
@@ -434,7 +435,7 @@
                                 <div class="form-text">この日付以前に登録された部品</div>
                             </div>
                         </div>
-                    </div>                    
+                    </div>
                     
                     <!-- アクションボタン -->
                     <div class="row mt-4">
@@ -471,7 +472,37 @@
                 <div class="row align-items-center">
                     <div class="col">
                         <h5 class="mb-0">検索結果</h5>
-                        <small class="text-muted" th:if="${totalCount != null}" th:text="'全 ' + ${totalCount} + ' 件の部品'">検索結果</small>
+                        <small class="text-muted" th:if="${totalCount != null}">
+                            全 <span th:text="${totalCount}">0</span> 件中 
+                            <span th:text="${#lists.size(parts)}">0</span> 件表示 
+                            (ページ <span th:text="${(currentPage ?: 0) + 1}">1</span> / <span th:text="${totalPages ?: 1}">1</span>)
+                        </small>
+                    </div>
+                    <div class="col-auto">
+                        <!-- ページサイズ選択UI -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center">
+                                <label for="pageSizeSelect" class="form-label me-2 mb-0 small text-muted">
+                                    表示件数:
+                                </label>
+                                <select class="form-select form-select-sm" 
+                                        id="pageSizeSelect" 
+                                        style="width: auto;"
+                                        onchange="changePageSize(this.value)">
+                                    <option value="20" th:selected="${pageSize == 20}">20件</option>
+                                    <option value="50" th:selected="${pageSize == 50}">50件</option>
+                                    <option value="100" th:selected="${pageSize == 100}">100件</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 管理者用CSVエクスポートボタン -->
+                            <button type="button" 
+                                    class="btn btn-outline-success btn-sm"
+                                    sec:authorize="hasRole('ADMIN')"
+                                    onclick="exportSearchResults()">
+                                <i class="fas fa-file-csv me-1"></i>CSV出力
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -542,6 +573,75 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- ページネーション -->
+                <div th:if="${totalPages != null and totalPages > 1}" 
+                     class="d-flex justify-content-between align-items-center mt-4 px-3 pb-3">
+                    
+                    <!-- 現在のページ情報 -->
+                    <div class="small text-muted">
+                        <span th:text="${(currentPage ?: 0) + 1}">1</span> / <span th:text="${totalPages}">1</span> ページ
+                        （全 <span th:text="${totalCount}">0</span> 件）
+                    </div>
+                    
+                    <!-- ページネーションボタン -->
+                    <nav aria-label="検索結果ページネーション">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- 前へボタン -->
+                            <li class="page-item" th:classappend="${!hasPrevious} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:if="${hasPrevious}"
+                                   th:href="@{/parts/advanced-search(
+                                       page=${currentPage - 1},
+                                       size=${pageSize},
+                                       partNumber=${criteria.partNumber},
+                                       partName=${criteria.partName},
+                                       manufacturer=${criteria.manufacturer},
+                                       categoryId=${criteria.categoryId},
+                                       minPrice=${criteria.minPrice},
+                                       maxPrice=${criteria.maxPrice},
+                                       createdAfter=${criteria.createdAfter},
+                                       createdBefore=${criteria.createdBefore}
+                                   )}">
+                                    <i class="fas fa-chevron-left me-1"></i>前へ
+                                </a>
+                                <span class="page-link" th:unless="${hasPrevious}">
+                                    <i class="fas fa-chevron-left me-1"></i>前へ
+                                </span>
+                            </li>
+                            
+                            <!-- 現在のページ -->
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    <span th:text="${(currentPage ?: 0) + 1}">1</span>
+                                </span>
+                            </li>
+                            
+                            <!-- 次へボタン -->
+                            <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
+                                <a class="page-link" 
+                                   th:if="${hasNext}"
+                                   th:href="@{/parts/advanced-search(
+                                       page=${currentPage + 1},
+                                       size=${pageSize},
+                                       partNumber=${criteria.partNumber},
+                                       partName=${criteria.partName},
+                                       manufacturer=${criteria.manufacturer},
+                                       categoryId=${criteria.categoryId},
+                                       minPrice=${criteria.minPrice},
+                                       maxPrice=${criteria.maxPrice},
+                                       createdAfter=${criteria.createdAfter},
+                                       createdBefore=${criteria.createdBefore}
+                                   )}">
+                                    次へ<i class="fas fa-chevron-right ms-1"></i>
+                                </a>
+                                <span class="page-link" th:unless="${hasNext}">
+                                    次へ<i class="fas fa-chevron-right ms-1"></i>
+                                </span>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
             </div>
         </div>
 
@@ -554,11 +654,67 @@
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- 基本JavaScript -->
-    <script>
+    <!-- JavaScript -->
+    <script th:inline="javascript">
+        // ページサイズ変更機能
+        function changePageSize(newSize) {
+            const form = document.getElementById('advancedSearchForm');
+            const pageField = document.getElementById('pageField');
+            const sizeField = document.getElementById('sizeField');
+            
+            if (sizeField) {
+                sizeField.value = newSize;
+            }
+            
+            if (pageField) {
+                pageField.value = 0; // 1ページ目にリセット
+            }
+            
+            if (form) {
+                form.submit();
+            }
+        }
+
+        // フォームリセット機能
+        function resetForm() {
+            const form = document.getElementById('advancedSearchForm');
+            const pageField = document.getElementById('pageField');
+            const sizeField = document.getElementById('sizeField');
+            const pageSizeSelect = document.getElementById('pageSizeSelect');
+            
+            if (form) {
+                form.reset();
+            }
+            
+            if (pageField) {
+                pageField.value = 0;
+            }
+            
+            if (sizeField) {
+                sizeField.value = 20;
+            }
+            
+            if (pageSizeSelect) {
+                pageSizeSelect.value = 20;
+            }
+            
+            localStorage.removeItem('advancedSearchCriteria');
+        }
+
+        // ページロード時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageSizeSelect = document.getElementById('pageSizeSelect');
+            const currentSize = /*[[${pageSize}]]*/ 20;
+            
+            if (pageSizeSelect) {
+                pageSizeSelect.value = currentSize;
+            }
+            
+            updateSavedSearchList();
+        });
+
         // 検索条件保存機能
         function saveSearchCriteria() {
-            // 現在の検索条件を取得
             const criteria = {
                 partNumber: document.getElementById('partNumber').value,
                 partName: document.getElementById('partName').value,
@@ -570,20 +726,17 @@
                 createdBefore: document.getElementById('createdBefore').value
             };
             
-            // 空の条件はチェック
             const hasValue = Object.values(criteria).some(value => value && value.trim() !== '');
             if (!hasValue) {
                 alert('保存する検索条件を入力してください');
                 return;
             }
             
-            // 保存名を入力
             const searchName = prompt('検索条件の名前を入力してください:', '検索条件_' + new Date().toLocaleDateString());
             if (!searchName) {
                 return;
             }
             
-            // localStorageに保存
             try {
                 let savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
                 savedSearches[searchName] = {
@@ -592,13 +745,11 @@
                 };
                 
                 localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
-                
                 alert('検索条件「' + searchName + '」を保存しました');
                 updateSavedSearchList();
                 
             } catch (error) {
                 alert('検索条件の保存に失敗しました');
-                console.error('Save error:', error);
             }
         }
 
@@ -609,14 +760,11 @@
                 const select = document.getElementById('savedSearchSelect');
                 const section = document.getElementById('savedSearchSection');
                 
-                // 選択肢をクリア
                 select.innerHTML = '<option value="">保存済み検索を選択...</option>';
                 
-                // 保存済み検索があるかチェック
                 const hasSearches = Object.keys(savedSearches).length > 0;
                 
                 if (hasSearches) {
-                    // 保存済み検索を追加
                     Object.keys(savedSearches).forEach(searchName => {
                         const option = document.createElement('option');
                         option.value = searchName;
@@ -624,15 +772,13 @@
                         select.appendChild(option);
                     });
                     
-                    // セクションを表示
                     section.style.display = 'block';
                 } else {
-                    // セクションを非表示
                     section.style.display = 'none';
                 }
                 
             } catch (error) {
-                console.error('List update error:', error);
+                // エラー時は何もしない
             }
         }
 
@@ -655,7 +801,6 @@
                 
                 const criteria = searchData.criteria;
                 
-                // フォームに値を設定
                 document.getElementById('partNumber').value = criteria.partNumber || '';
                 document.getElementById('partName').value = criteria.partName || '';
                 document.getElementById('manufacturer').value = criteria.manufacturer || '';
@@ -669,7 +814,6 @@
                 
             } catch (error) {
                 alert('検索条件の読み込みに失敗しました');
-                console.error('Load error:', error);
             }
         }
 
@@ -690,102 +834,30 @@
                 delete savedSearches[selectedName];
                 
                 localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
-                
                 alert('検索条件「' + selectedName + '」を削除しました');
                 updateSavedSearchList();
                 
             } catch (error) {
                 alert('検索条件の削除に失敗しました');
-                console.error('Delete error:', error);
             }
-        }
-        
-        // フォームリセット機能（修正版）
-        function resetForm() {
-            document.getElementById('advancedSearchForm').reset();
-            // 今日の日付をデフォルトで終了日に設定
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('createdBefore').value = today;
         }
 
-        // ページ読み込み時の初期化（修正版）
-        document.addEventListener('DOMContentLoaded', function() {
-            // 今日の日付をデフォルトで終了日に設定（検索条件がない場合）
-            const createdBefore = document.getElementById('createdBefore');
-            if (!createdBefore.value) {
-                const today = new Date().toISOString().split('T')[0];
-                createdBefore.value = today;
-            }
-            
-            // フォーム送信時の処理
-            document.getElementById('advancedSearchForm').addEventListener('submit', function(e) {
-                // 価格入力からカンマを削除（数値型フィールドのため）
-                const minPrice = document.getElementById('minPrice');
-                const maxPrice = document.getElementById('maxPrice');
-                
-                if (minPrice.value) {
-                    minPrice.value = minPrice.value.replace(/,/g, '');
-                }
-                if (maxPrice.value) {
-                    maxPrice.value = maxPrice.value.replace(/,/g, '');
-                }
-                
-                // バリデーション
-                const minVal = parseFloat(minPrice.value) || 0;
-                const maxVal = parseFloat(maxPrice.value) || Infinity;
-                
-                if (minVal > maxVal) {
-                    e.preventDefault();
-                    alert('最低価格は最高価格以下で入力してください');
-                    return false;
-                }
-                
-                // 送信前にローディング表示
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>検索中...';
-                submitBtn.disabled = true;
-                
-                // フォーム送信後にボタンを元に戻す（ページ遷移しない場合）
-                setTimeout(function() {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                }, 5000);
-            });
-            
-            // 価格入力でのフォーマット表示
-            const priceInputs = document.querySelectorAll('#minPrice, #maxPrice');
-            priceInputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    if (this.value) {
-                        this.value = this.value.replace(/,/g, '');
-                    }
-                });
-            });
-            
-            // 日付バリデーション（修正版）
-            const dateFrom = document.getElementById('createdAfter');
-            const dateTo = document.getElementById('createdBefore');
-            
-            if (dateFrom && dateTo) {
-                dateFrom.addEventListener('change', function() {
-                    if (this.value && dateTo.value && this.value > dateTo.value) {
-                        alert('開始日は終了日以前で入力してください');
-                        this.value = '';
-                    }
-                });
-                
-                dateTo.addEventListener('change', function() {
-                    if (this.value && dateFrom.value && this.value < dateFrom.value) {
-                        alert('終了日は開始日以降で入力してください');
-                        this.value = '';
-                    }
-                });
-            }
-            
-            // 保存済み検索一覧の初期化
-            updateSavedSearchList();
-        });
+		// CSV出力機能（管理者用）- 検索結果のみ出力
+		function exportSearchResults() {
+		    const form = document.getElementById('advancedSearchForm');
+		    const formData = new FormData(form);
+		    
+		    // 検索条件をURLパラメータに変換
+		    const params = new URLSearchParams();
+		    for (let [key, value] of formData.entries()) {
+		        if (value && value.trim() !== '') {
+		            params.append(key, value);
+		        }
+		    }
+		    
+		    // 検索条件付きCSVダウンロード用URLに遷移
+		    window.location.href = '/parts/export/csv/search?' + params.toString();
+		}
     </script>
 </body>
 </html>

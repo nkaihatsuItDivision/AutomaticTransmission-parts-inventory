@@ -77,15 +77,28 @@ public class AdvancedSearchCriteria {
     }
     
     /**
-     * デフォルトのページネーション設定
+     * デフォルトのページネーション設定（デバッグ版）
      */
     public void setDefaultPagination() {
+        System.out.println("=== setDefaultPagination実行 ===");
+        System.out.println("設定前: page=" + page + ", size=" + size);
+        
         if (page == null || page < 0) {
+            System.out.println("pageをデフォルト値0に設定");
             this.page = 0;
+        } else {
+            System.out.println("pageはそのまま: " + page);
         }
+        
         if (size == null || size <= 0) {
+            System.out.println("sizeをデフォルト値20に設定");
             this.size = 20; // デフォルトで20件表示
+        } else {
+            System.out.println("sizeはそのまま: " + size);
         }
+        
+        System.out.println("設定後: page=" + page + ", size=" + size);
+        System.out.println("=== setDefaultPagination完了 ===");
     }
     /**
      * String型の日付をLocalDateTimeに変換するヘルパーメソッド
@@ -133,4 +146,5 @@ public class AdvancedSearchCriteria {
             return null;
         }
     }
+    
 }

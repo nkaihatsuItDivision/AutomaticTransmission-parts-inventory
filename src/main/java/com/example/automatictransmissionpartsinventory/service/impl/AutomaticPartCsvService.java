@@ -6,12 +6,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.automatictransmissionpartsinventory.dto.AdvancedSearchCriteria;
 import com.example.automatictransmissionpartsinventory.entity.AutomativePart;
 import com.example.automatictransmissionpartsinventory.exception.ServiceException;
 import com.example.automatictransmissionpartsinventory.service.AutomaticPartService;
@@ -34,7 +37,7 @@ public class AutomaticPartCsvService {
     
     // CSV関連の定数
     private static final String[] CSV_HEADERS = {
-        "部品番号", "部品名", "価格", "説明", "メーカー名"
+    		"部品番号", "部品名", "価格", "説明", "メーカー名", "カテゴリ", "登録日時"
     };
     
     private static final String CSV_CHARSET = "UTF-8";
@@ -68,7 +71,9 @@ public class AutomaticPartCsvService {
                     part.getPartName(),
                     part.getPrice() != null ? part.getPrice().toString() : "",
                     part.getDescription() != null ? part.getDescription() : "",
-                    part.getManufacturer() != null ? part.getManufacturer() : ""
+                    part.getManufacturer() != null ? part.getManufacturer() : "",
+                    part.getCategory() != null ? part.getCategory().getName() : "未分類",
+                    part.getCreatedAt() != null ? part.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : ""
                 };
                 csvWriter.writeNext(record);
             }
@@ -268,5 +273,83 @@ public class AutomaticPartCsvService {
         public boolean hasErrors() { return errorCount > 0; }
         public boolean hasSkipped() { return skipCount > 0; }
         public boolean isSuccess() { return errorCount == 0; }
+    }
+    /**
+     * 検索条件に基づいて部品データをCSV形式でエクスポートする
+     */
+    public byte[] exportPartsToCSVBySearchCriteria(AdvancedSearchCriteria criteria) throws ServiceException {
+        log.info("検索条件付きCSVエクスポート処理開始: {}", criteria);
+        
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             OutputStreamWriter osw = new OutputStreamWriter(baos, CSV_CHARSET);
+             CSVWriter csvWriter = new CSVWriter(osw, 
+                 CSV_SEPARATOR,
+                 CSVWriter.DEFAULT_QUOTE_CHARACTER,
+                 CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                 CSVWriter.DEFAULT_LINE_END)) {
+            
+            // ヘッダー行の書き込み
+            csvWriter.writeNext(CSV_HEADERS);
+            
+            // 検索条件に基づく部品データの取得
+            // ページネーションを無効化して全ての検索結果を取得
+            AdvancedSearchCriteria exportCriteria = new AdvancedSearchCriteria();
+            
+            // 検索条件をコピー（ページネーション以外）
+            exportCriteria.setPartNumber(criteria.getPartNumber());
+            exportCriteria.setPartName(criteria.getPartName());
+            exportCriteria.setManufacturer(criteria.getManufacturer());
+            exportCriteria.setCategoryId(criteria.getCategoryId());
+            exportCriteria.setCategoryName(criteria.getCategoryName());
+            exportCriteria.setMinPrice(criteria.getMinPrice());
+            exportCriteria.setMaxPrice(criteria.getMaxPrice());
+            exportCriteria.setCreatedAfter(criteria.getCreatedAfter());
+            exportCriteria.setCreatedBefore(criteria.getCreatedBefore());
+            exportCriteria.setUpdatedAfter(criteria.getUpdatedAfter());
+            exportCriteria.setUpdatedBefore(criteria.getUpdatedBefore());
+            exportCriteria.setSortBy(criteria.getSortBy());
+            exportCriteria.setSortOrder(criteria.getSortOrder());
+            
+            // CSVエクスポート用に大きなページサイズを設定（全データを取得）
+            exportCriteria.setPage(0);
+            exportCriteria.setSize(Integer.MAX_VALUE); // 全ての結果を取得
+            
+            // デフォルト値設定
+            exportCriteria.setDefaultSort();
+            
+            log.info("CSV出力用検索実行: {}", exportCriteria);
+            
+            // 検索実行
+            Page<AutomativePart> searchResults = automaticPartService.searchByAdvancedCriteria(exportCriteria);
+            List<AutomativePart> parts = searchResults.getContent();
+            
+            log.info("検索結果: {}件のデータを取得", parts.size());
+            
+            // データの書き込み
+            for (AutomativePart part : parts) {
+                String[] record = {
+                    part.getPartNumber(),
+                    part.getPartName(),
+                    part.getPrice() != null ? part.getPrice().toString() : "",
+                    part.getDescription() != null ? part.getDescription() : "",
+                    part.getManufacturer() != null ? part.getManufacturer() : "",
+                    part.getCategory() != null ? part.getCategory().getName() : "未分類",
+                    part.getCreatedAt() != null ? part.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : ""
+                };
+                csvWriter.writeNext(record);
+            }
+            
+            csvWriter.flush();
+            osw.flush();
+            
+            byte[] result = baos.toByteArray();
+            log.info("検索条件付きCSVエクスポート完了: {}件のデータ、{}bytes", parts.size(), result.length);
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("検索条件付きCSVエクスポート処理でエラーが発生", e);
+            throw new ServiceException("検索条件付きCSVエクスポートに失敗しました: " + e.getMessage(), e);
+        }
     }
 }
