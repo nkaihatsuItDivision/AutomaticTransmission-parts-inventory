@@ -1,29 +1,71 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${isEdit != null and isEdit} ? 'AT部品編集' : 'AT部品登録'">AT部品登録 - AT部品在庫管理システム</title>
+    
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- カスタムCSS -->
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- カスタムCSS（部品一覧画面と完全統一） -->
     <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
         .header-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
         }
-        .form-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.1);
-            padding: 2.5rem;
-            max-width: 800px;
-            margin: 0 auto;
+        .search-card {
+            border: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 15px;
         }
+        .parts-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .parts-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem;
+        }
+        .parts-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .parts-table tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        .btn-action {
+            margin: 0 2px;
+            border-radius: 8px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        /* フォーム特有のスタイル */
         .form-label {
             font-weight: 600;
             color: #495057;
@@ -51,47 +93,6 @@
         .form-control.is-invalid {
             border-color: #dc3545;
         }
-        .btn-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin: 0 0.5rem;
-        }
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            color: white;
-        }
-        .btn-secondary-custom {
-            background: #6c757d;
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin: 0 0.5rem;
-        }
-        .btn-secondary-custom:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            color: white;
-        }
-        .form-instructions {
-            background: #d1ecf1;
-            color: #0c5460;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-            border-left: 4px solid #17a2b8;
-        }
         .price-input-group {
             position: relative;
         }
@@ -110,110 +111,110 @@
     </style>
 </head>
 <body class="bg-light">
-	<!-- ナビゲーションバー（権限制御付き） -->
-	<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-	    <div class="container-fluid">
-	        <a class="navbar-brand" href="/parts">
-	            <i class="fas fa-cogs me-2"></i>
-	            AT部品在庫管理システム
-	        </a>
-	        
-	        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-	            <span class="navbar-toggler-icon"></span>
-	        </button>
-	        
-	        <div class="collapse navbar-collapse" id="navbarNav">
-	            <ul class="navbar-nav me-auto">
-	                <!-- 部品管理メニュー（全ユーザー） -->
-	                <li class="nav-item">
-	                    <a class="nav-link" href="/parts">
-	                        <i class="fas fa-list me-1"></i>
-	                        部品一覧
-	                    </a>
-	                </li>
-					<li class="nav-item">
-					    <a class="nav-link" href="/parts/advanced-search">
-					        <i class="fas fa-search-plus me-1"></i>
-					        高度検索
-					    </a>
-					</li>
-	                <li class="nav-item">
-	                    <a class="nav-link active" href="/parts/new">
-	                        <i class="fas fa-plus me-1"></i>
-	                        部品追加
-	                    </a>
-	                </li>
-	                
-	                <!-- 管理者専用メニュー（管理者のみ表示） -->
-	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-	                    <a class="nav-link" href="/admin">
-	                        <i class="bi bi-speedometer2 me-1"></i>
-	                        管理者ダッシュボード
-	                    </a>
-	                </li>
-					<li class="nav-item" sec:authorize="hasRole('ADMIN')">
-					    <a class="nav-link" href="/admin/categories">
-					        <i class="fas fa-folder me-1"></i>
-					        カテゴリ管理
-					    </a>
-					</li>
-	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-	                    <a class="nav-link" href="/admin/users">
-	                        <i class="bi bi-people me-1"></i>
-	                        ユーザー管理
-	                    </a>
-	                </li>
-	            </ul>
-	            
-	            <!-- CSV機能（管理者のみ） -->
-	            <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
-	                <li class="nav-item">
-	                    <a class="nav-link" href="/parts/export/csv">
-	                        <i class="fas fa-download me-1"></i>
-	                        CSV エクスポート
-	                    </a>
-	                </li>
-	                <li class="nav-item">
-	                    <a class="nav-link" href="/parts/import/csv">
-	                        <i class="fas fa-upload me-1"></i>
-	                        CSV インポート
-	                    </a>
-	                </li>
-	            </ul>
-	            
-	            <!-- ユーザー情報・ログアウト -->
-	            <ul class="navbar-nav">
-	                <li class="nav-item dropdown">
-	                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-	                        <i class="bi bi-person-circle me-1"></i>
-	                        <span sec:authentication="name">ユーザー</span>
-	                        <!-- 権限バッジ表示 -->
-	                        <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
-	                        <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
-	                    </a>
-	                    <ul class="dropdown-menu">
-	                        <!-- 管理者専用設定 -->
-	                        <li sec:authorize="hasRole('ADMIN')">
-	                            <a class="dropdown-item" href="/admin/settings">
-	                                <i class="bi bi-gear me-1"></i>システム設定
-	                            </a>
-	                        </li>
-	                        <li sec:authorize="hasRole('ADMIN')">
-	                            <hr class="dropdown-divider">
-	                        </li>
-	                        <li>
-	                            <form th:action="@{/logout}" method="post" class="d-inline">
-	                                <button type="submit" class="dropdown-item">
-	                                    <i class="bi bi-box-arrow-right me-1"></i>ログアウト
-	                                </button>
-	                            </form>
-	                        </li>
-	                    </ul>
-	                </li>
-	            </ul>
-	        </div>
-	    </div>
-	</nav>
+    <!-- ナビゲーションバー（権限制御付き） -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/parts">
+                <i class="fas fa-cogs me-2"></i>
+                AT部品在庫管理システム
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <!-- 部品管理メニュー（全ユーザー） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts">
+                            <i class="fas fa-list me-1"></i>
+                            部品一覧
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/advanced-search">
+                            <i class="fas fa-search-plus me-1"></i>
+                            高度検索
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/parts/new">
+                            <i class="fas fa-plus me-1"></i>
+                            部品追加
+                        </a>
+                    </li>
+                    
+                    <!-- 管理者専用メニュー（管理者のみ表示） -->
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" href="/admin">
+                            <i class="bi bi-speedometer2 me-1"></i>
+                            管理者ダッシュボード
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" href="/admin/categories">
+                            <i class="fas fa-folder me-1"></i>
+                            カテゴリ管理
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" href="/admin/users">
+                            <i class="bi bi-people me-1"></i>
+                            ユーザー管理
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- CSV機能（管理者のみ） -->
+                <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/export/csv">
+                            <i class="fas fa-download me-1"></i>
+                            CSV エクスポート
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/import/csv">
+                            <i class="fas fa-upload me-1"></i>
+                            CSV インポート
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- ユーザー情報・ログアウト -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span sec:authentication="name">ユーザー</span>
+                            <!-- 権限バッジ表示 -->
+                            <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+                            <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <!-- 管理者専用設定 -->
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item" href="/admin/settings">
+                                    <i class="bi bi-gear me-1"></i>システム設定
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-box-arrow-right me-1"></i>ログアウト
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <!-- ヘッダー -->
     <div class="header-section">
@@ -238,179 +239,184 @@
     </div>
 
     <div class="container">
-		<!-- 入力説明 -->
-		<div class="form-instructions">
-		    <h6><i class="fas fa-info-circle me-2"></i>入力について</h6>
-		    <ul class="mb-0">
-		        <li><span class="required">*</span> マークは必須入力項目です</li>
-		        <li>部品番号は半角英数字で入力してください（例：AT001、TR-2024-01）</li>
-		        <li>価格は半角数字で入力してください（小数点も可能）</li>
-		        <li>カテゴリ、説明、メーカーは任意入力です</li> <!-- ★修正 -->
-		    </ul>
-		</div>
+        <!-- 入力説明 -->
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>入力について:</strong> 
+            <span class="required">*</span> マークは必須入力項目です。部品番号は半角英数字で入力してください（例：AT001、TR-2024-01）。カテゴリ、説明、メーカーは任意入力です。
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
 
         <!-- フォーム -->
-        <div class="form-card">
-            <form th:action="${isEdit != null and isEdit} ? @{/parts/{id}(id=${part.id})} : @{/parts}" 
-                  method="post" 
-                  th:object="${part}" 
-                  novalidate>
-                
-                <!-- 部品番号 -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label for="partNumber" class="form-label">
-                            <i class="fas fa-barcode me-2"></i>部品番号 <span class="required">*</span>
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               th:classappend="${#fields.hasErrors('partNumber')} ? 'is-invalid' : ''"
-                               id="partNumber" 
-                               th:field="*{partNumber}" 
-                               placeholder="例: AT001, TR-2024-01"
-                               maxlength="255">
-                        <div class="invalid-feedback" th:if="${#fields.hasErrors('partNumber')}" th:errors="*{partNumber}">
-                            部品番号を入力してください。
-                        </div>
-                        <small class="form-text text-muted">半角英数字とハイフンが使用できます</small>
-                    </div>
+        <div class="card search-card">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>部品情報入力
+                </h5>
+                <small class="text-muted">必要な情報を入力して部品を登録・更新してください</small>
+            </div>
+            
+            <div class="card-body">
+                <form th:action="${isEdit != null and isEdit} ? @{/parts/{id}(id=${part.id})} : @{/parts}" 
+                      method="post" 
+                      th:object="${part}" 
+                      novalidate>
                     
-                    <!-- 部品名 -->
-                    <div class="col-md-6">
-                        <label for="partName" class="form-label">
-                            <i class="fas fa-tag me-2"></i>部品名 <span class="required">*</span>
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               th:classappend="${#fields.hasErrors('partName')} ? 'is-invalid' : ''"
-                               id="partName" 
-                               th:field="*{partName}" 
-                               placeholder="例: トルクコンバーター"
-                               maxlength="255">
-                        <div class="invalid-feedback" th:if="${#fields.hasErrors('partName')}" th:errors="*{partName}">
-                            部品名を入力してください。
+                    <!-- 部品番号・部品名 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="partNumber" class="form-label">
+                                <i class="fas fa-barcode me-2"></i>部品番号 <span class="required">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   th:classappend="${#fields.hasErrors('partNumber')} ? 'is-invalid' : ''"
+                                   id="partNumber" 
+                                   th:field="*{partNumber}" 
+                                   placeholder="例: AT001, TR-2024-01"
+                                   maxlength="255">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('partNumber')}" th:errors="*{partNumber}">
+                                部品番号を入力してください。
+                            </div>
+                            <small class="form-text text-muted">半角英数字とハイフンが使用できます</small>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 価格とメーカー -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label for="price" class="form-label">
-                            <i class="fas fa-yen-sign me-2"></i>価格 <span class="required">*</span>
-                        </label>
-                        <div class="price-input-group">
-                            <span class="price-symbol">¥</span>
-                            <input type="number" 
-                                   class="form-control price-input" 
-                                   th:classappend="${#fields.hasErrors('price')} ? 'is-invalid' : ''"
-                                   id="price" 
-                                   th:field="*{price}" 
-                                   placeholder="50000"
-                                   step="0.01"
-                                   min="0">
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('price')}" th:errors="*{price}">
-                                価格を入力してください。
+                        
+                        <div class="col-md-6">
+                            <label for="partName" class="form-label">
+                                <i class="fas fa-tag me-2"></i>部品名 <span class="required">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   th:classappend="${#fields.hasErrors('partName')} ? 'is-invalid' : ''"
+                                   id="partName" 
+                                   th:field="*{partName}" 
+                                   placeholder="例: トルクコンバーター"
+                                   maxlength="255">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('partName')}" th:errors="*{partName}">
+                                部品名を入力してください。
                             </div>
                         </div>
-                        <small class="form-text text-muted">半角数字で入力してください（小数点可）</small>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <label for="manufacturer" class="form-label">
-                            <i class="fas fa-industry me-2"></i>メーカー
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="manufacturer" 
-                               th:field="*{manufacturer}" 
-                               placeholder="例: AISIN, JATCO"
-                               maxlength="255">
-                        <small class="form-text text-muted">任意入力です</small>
-                    </div>
-                </div>
-				
-				<!-- ★追加: カテゴリ選択 -->
-				<div class="row mb-4">
-				    <div class="col-12">
-				        <label for="category" class="form-label">
-				            <i class="fas fa-folder me-2"></i>カテゴリ
-				        </label>
-				        <select class="form-control" id="category" th:field="*{category}">
-				            <option value="">カテゴリを選択してください（任意）</option>
-				            <!-- 大分類・小分類の階層表示 -->
-				            <th:block th:each="parentCategory : ${categories}" th:if="${parentCategory.parent == null}">
-				                <!-- 大分類 -->
-				                <option th:value="${parentCategory.id}" 
-				                        th:text="'【大分類】' + ${parentCategory.name}"
-				                        th:selected="${part.category != null and part.category.id == parentCategory.id}">
-				                </option>
-				                <!-- 小分類 -->
-				                <option th:each="childCategory : ${parentCategory.children}"
-				                        th:value="${childCategory.id}" 
-				                        th:text="'　├ ' + ${childCategory.name}"
-				                        th:selected="${part.category != null and part.category.id == childCategory.id}">
-				                </option>
-				            </th:block>
-				        </select>
-				        <small class="form-text text-muted">部品の分類を選択すると検索やフィルタリングが便利になります</small>
-				    </div>
-				</div>
 
-                <!-- 説明 -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <label for="description" class="form-label">
-                            <i class="fas fa-comment-alt me-2"></i>説明
-                        </label>
-                        <textarea class="form-control" 
-                                  id="description" 
-                                  th:field="*{description}" 
-                                  rows="4"
-                                  placeholder="部品の詳細説明、特徴、用途などを入力してください..."
-                                  maxlength="1000"></textarea>
-                        <small class="form-text text-muted">任意入力です（最大1000文字）</small>
-                    </div>
-                </div>
-
-                <!-- 現在の登録情報（編集時のみ表示） -->
-                <div th:if="${isEdit != null and isEdit and part.createdAt != null}" class="row mb-4">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>登録情報：</strong>
-                            登録日時 <span th:text="${#temporals.format(part.createdAt, 'yyyy年MM月dd日 HH:mm')}">2024年09月04日 10:30</span>
-                            <span th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
-                                / 最終更新 <span th:text="${#temporals.format(part.updatedAt, 'yyyy年MM月dd日 HH:mm')}">2024年09月04日 12:15</span>
-                            </span>
-							<span th:if="${part.category != null}">
-							    / カテゴリ：<span th:text="${part.category.getFullPath()}">カテゴリ名</span>
-							</span>
+                    <!-- 価格・メーカー -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="price" class="form-label">
+                                <i class="fas fa-yen-sign me-2"></i>価格 <span class="required">*</span>
+                            </label>
+                            <div class="price-input-group">
+                                <span class="price-symbol">¥</span>
+                                <input type="number" 
+                                       class="form-control price-input" 
+                                       th:classappend="${#fields.hasErrors('price')} ? 'is-invalid' : ''"
+                                       id="price" 
+                                       th:field="*{price}" 
+                                       placeholder="50000"
+                                       step="0.01"
+                                       min="0">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('price')}" th:errors="*{price}">
+                                    価格を入力してください。
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">半角数字で入力してください（小数点可）</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="manufacturer" class="form-label">
+                                <i class="fas fa-industry me-2"></i>メーカー
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="manufacturer" 
+                                   th:field="*{manufacturer}" 
+                                   placeholder="例: AISIN, JATCO"
+                                   maxlength="255">
+                            <small class="form-text text-muted">任意入力です</small>
                         </div>
                     </div>
-                </div>
-
-                <!-- ボタン群 -->
-                <div class="row">
-                    <div class="col-12 text-center">
-                        <!-- 送信ボタン -->
-                        <button type="submit" class="btn btn-custom">
-                            <i th:class="${isEdit != null and isEdit} ? 'fas fa-save' : 'fas fa-plus'" class="me-2"></i>
-                            <span th:text="${isEdit != null and isEdit} ? '更新する' : '登録する'">登録する</span>
-                        </button>
-                        
-                        <!-- キャンセルボタン -->
-                        <a href="/parts" class="btn btn-secondary-custom">
-                            <i class="fas fa-times me-2"></i>キャンセル
-                        </a>
-                        
-                        <!-- リセットボタン（新規登録時のみ） -->
-                        <button th:if="${isEdit == null or !isEdit}" type="reset" class="btn btn-secondary-custom">
-                            <i class="fas fa-undo me-2"></i>入力をクリア
-                        </button>
+                    
+                    <!-- カテゴリ選択 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label for="category" class="form-label">
+                                <i class="fas fa-folder me-2"></i>カテゴリ
+                            </label>
+                            <select class="form-control" id="category" th:field="*{category}">
+                                <option value="">カテゴリを選択してください（任意）</option>
+                                <!-- 大分類・小分類の階層表示 -->
+                                <th:block th:each="parentCategory : ${categories}" th:if="${parentCategory.parent == null}">
+                                    <!-- 大分類 -->
+                                    <option th:value="${parentCategory.id}" 
+                                            th:text="'【大分類】' + ${parentCategory.name}"
+                                            th:selected="${part.category != null and part.category.id == parentCategory.id}">
+                                    </option>
+                                    <!-- 小分類 -->
+                                    <option th:each="childCategory : ${parentCategory.children}"
+                                            th:value="${childCategory.id}" 
+                                            th:text="'　├ ' + ${childCategory.name}"
+                                            th:selected="${part.category != null and part.category.id == childCategory.id}">
+                                    </option>
+                                </th:block>
+                            </select>
+                            <small class="form-text text-muted">部品の分類を選択すると検索やフィルタリングが便利になります</small>
+                        </div>
                     </div>
-                </div>
-            </form>
+
+                    <!-- 説明 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-comment-alt me-2"></i>説明
+                            </label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      th:field="*{description}" 
+                                      rows="4"
+                                      placeholder="部品の詳細説明、特徴、用途などを入力してください..."
+                                      maxlength="1000"></textarea>
+                            <small class="form-text text-muted">任意入力です（最大1000文字）</small>
+                        </div>
+                    </div>
+
+                    <!-- 現在の登録情報（編集時のみ表示） -->
+                    <div th:if="${isEdit != null and isEdit and part.createdAt != null}" class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>登録情報：</strong>
+                                登録日時 <span th:text="${#temporals.format(part.createdAt, 'yyyy年MM月dd日 HH:mm')}">2024年09月04日 10:30</span>
+                                <span th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
+                                    / 最終更新 <span th:text="${#temporals.format(part.updatedAt, 'yyyy年MM月dd日 HH:mm')}">2024年09月04日 12:15</span>
+                                </span>
+                                <span th:if="${part.category != null}">
+                                    / カテゴリ：<span th:text="${part.category.getFullPath()}">カテゴリ名</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ボタン群 -->
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <!-- 送信ボタン -->
+                            <button type="submit" class="btn btn-primary btn-lg me-3">
+                                <i th:class="${isEdit != null and isEdit} ? 'fas fa-save' : 'fas fa-plus'" class="me-2"></i>
+                                <span th:text="${isEdit != null and isEdit} ? '更新する' : '登録する'">登録する</span>
+                            </button>
+                            
+                            <!-- キャンセルボタン -->
+                            <a href="/parts" class="btn btn-secondary btn-lg me-3">
+                                <i class="fas fa-times me-2"></i>キャンセル
+                            </a>
+                            
+                            <!-- リセットボタン（新規登録時のみ） -->
+                            <button th:if="${isEdit == null or !isEdit}" type="reset" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-undo me-2"></i>入力をクリア
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- フッター -->

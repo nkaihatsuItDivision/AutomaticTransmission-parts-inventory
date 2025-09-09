@@ -1,142 +1,228 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カテゴリ管理</title>
+    <title>AT部品在庫管理システム - カテゴリ管理</title>
     
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- カスタムCSS（部品一覧画面と完全統一） -->
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .search-card {
+            border: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+        .parts-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .parts-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem;
+        }
+        .parts-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .parts-table tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        .btn-action {
+            margin: 0 2px;
+            border-radius: 8px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        /* カテゴリ特有のスタイル */
+        .category-card {
+            border-left: 4px solid #667eea;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .category-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+        .child-category-item {
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.75rem 1rem;
+        }
+        .child-category-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
-<body>
-    <div class="container mt-4">
-		<!-- ナビゲーションバー（権限制御付き） -->
-		<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-		    <div class="container-fluid">
-		        <a class="navbar-brand" href="/parts">
-		            <i class="fas fa-cogs me-2"></i>
-		            AT部品在庫管理システム
-		        </a>
-		        
-		        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-		            <span class="navbar-toggler-icon"></span>
-		        </button>
-		        
-		        <div class="collapse navbar-collapse" id="navbarNav">
-		            <ul class="navbar-nav me-auto">
-		                <!-- 部品管理メニュー（全ユーザー） -->
-		                <li class="nav-item">
-		                    <a class="nav-link" href="/parts">
-		                        <i class="fas fa-list me-1"></i>
-		                        部品一覧
-		                    </a>
-		                </li>
-						<li class="nav-item">
-						    <a class="nav-link" href="/parts/advanced-search">
-						        <i class="fas fa-search-plus me-1"></i>
-						        高度検索
-						    </a>
-						</li>
-		                <li class="nav-item">
-		                    <a class="nav-link" href="/parts/new">
-		                        <i class="fas fa-plus me-1"></i>
-		                        部品追加
-		                    </a>
-		                </li>
-		                
-		                <!-- 管理者専用メニュー（管理者のみ表示） -->
-		                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-		                    <a class="nav-link" href="/admin">
-		                        <i class="bi bi-speedometer2 me-1"></i>
-		                        管理者ダッシュボード
-		                    </a>
-		                </li>
-						<li class="nav-item" sec:authorize="hasRole('ADMIN')">
-						    <a class="nav-link active" href="/admin/categories">
-						        <i class="fas fa-folder me-1"></i>
-						        カテゴリ管理
-						    </a>
-						</li>
-		                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-		                    <a class="nav-link" href="/admin/users">
-		                        <i class="bi bi-people me-1"></i>
-		                        ユーザー管理
-		                    </a>
-		                </li>
-		            </ul>
-		            
-		            <!-- CSV機能（管理者のみ） -->
-		            <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
-		                <li class="nav-item">
-		                    <a class="nav-link" href="/parts/export/csv">
-		                        <i class="fas fa-download me-1"></i>
-		                        CSV エクスポート
-		                    </a>
-		                </li>
-		                <li class="nav-item">
-		                    <a class="nav-link" href="/parts/import/csv">
-		                        <i class="fas fa-upload me-1"></i>
-		                        CSV インポート
-		                    </a>
-		                </li>
-		            </ul>
-		            
-		            <!-- ユーザー情報・ログアウト -->
-		            <ul class="navbar-nav">
-		                <li class="nav-item dropdown">
-		                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-		                        <i class="bi bi-person-circle me-1"></i>
-		                        <span sec:authentication="name">ユーザー</span>
-		                        <!-- 権限バッジ表示 -->
-		                        <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
-		                        <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
-		                    </a>
-		                    <ul class="dropdown-menu">
-		                        <!-- 管理者専用設定 -->
-		                        <li sec:authorize="hasRole('ADMIN')">
-		                            <a class="dropdown-item" href="/admin/settings">
-		                                <i class="bi bi-gear me-1"></i>システム設定
-		                            </a>
-		                        </li>
-		                        <li sec:authorize="hasRole('ADMIN')">
-		                            <hr class="dropdown-divider">
-		                        </li>
-		                        <li>
-		                            <form th:action="@{/logout}" method="post" class="d-inline">
-		                                <button type="submit" class="dropdown-item">
-		                                    <i class="bi bi-box-arrow-right me-1"></i>ログアウト
-		                                </button>
-		                            </form>
-		                        </li>
-		                    </ul>
-		                </li>
-		            </ul>
-		        </div>
-		    </div>
-		</nav>
-
-        <!-- ページヘッダー -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1 class="h2">
-                    <i class="bi bi-folder2-open text-primary"></i> カテゴリ管理
-                </h1>
-            </div>
-            <div class="col-auto">
-                <a href="/admin/categories/new" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> 新規カテゴリ作成
-                </a>
+<body class="bg-light">
+    <!-- ナビゲーションバー（権限制御付き） -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/parts">
+                <i class="fas fa-cogs me-2"></i>
+                AT部品在庫管理システム
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <!-- 部品管理メニュー（全ユーザー） -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts">
+                            <i class="fas fa-list me-1"></i>
+                            部品一覧
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/advanced-search">
+                            <i class="fas fa-search-plus me-1"></i>
+                            高度検索
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/new">
+                            <i class="fas fa-plus me-1"></i>
+                            部品追加
+                        </a>
+                    </li>
+                    
+                    <!-- 管理者専用メニュー（管理者のみ表示） -->
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" href="/admin">
+                            <i class="bi bi-speedometer2 me-1"></i>
+                            管理者ダッシュボード
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link active" href="/admin/categories">
+                            <i class="fas fa-folder me-1"></i>
+                            カテゴリ管理
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" href="/admin/users">
+                            <i class="bi bi-people me-1"></i>
+                            ユーザー管理
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- CSV機能（管理者のみ） -->
+                <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/export/csv">
+                            <i class="fas fa-download me-1"></i>
+                            CSV エクスポート
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parts/import/csv">
+                            <i class="fas fa-upload me-1"></i>
+                            CSV インポート
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- ユーザー情報・ログアウト -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span sec:authentication="name">ユーザー</span>
+                            <!-- 権限バッジ表示 -->
+                            <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+                            <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <!-- 管理者専用設定 -->
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item" href="/admin/settings">
+                                    <i class="bi bi-gear me-1"></i>システム設定
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-box-arrow-right me-1"></i>ログアウト
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
+    </nav>
 
-        <!-- 統計情報（シンプル版） -->
+    <!-- ヘッダー -->
+    <div class="header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">
+                        <i class="fas fa-folder me-3"></i>
+                        カテゴリ管理
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">部品の分類・整理を効率的に管理できます</p>
+                </div>
+                <div class="col-auto">
+                    <a href="/admin" class="btn btn-light btn-lg me-3">
+                        <i class="fas fa-arrow-left me-2"></i>管理者ダッシュボードに戻る
+                    </a>
+                    <a href="/admin/categories/new" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus me-2"></i>新規カテゴリ作成
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 統計情報（部品一覧スタイルに統一） -->
         <div class="row mb-4" th:if="${statistics}">
             <div class="col-12">
-                <div class="card bg-primary text-white">
+                <div class="card search-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <div class="card-body">
-                        <h5 class="card-title">カテゴリ統計情報</h5>
+                        <h5 class="card-title">
+                            <i class="fas fa-chart-bar me-2"></i>カテゴリ統計情報
+                        </h5>
                         <div class="row">
                             <div class="col-md-2 text-center">
                                 <h3 th:text="${statistics.totalCategories}">0</h3>
@@ -168,57 +254,72 @@
             </div>
         </div>
 
-        <!-- カテゴリ一覧（シンプル版） -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">カテゴリ一覧</h5>
+        <!-- カテゴリ一覧（部品一覧スタイルに統一） -->
+        <div class="card parts-table">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">カテゴリ一覧</h5>
+                        <small class="text-muted" th:if="${categoryTree != null}"
+                               th:text="'全 ' + ${#lists.size(categoryTree)} + ' 件の大分類'">全 0 件の大分類</small>
                     </div>
-                    <div class="card-body">
-                        <!-- カテゴリが存在しない場合 -->
-                        <div th:if="${categoryTree == null or #lists.isEmpty(categoryTree)}" class="text-center py-5">
-                            <h4 class="text-muted">カテゴリがまだ登録されていません</h4>
-                            <a href="/admin/categories/new" class="btn btn-primary">新規カテゴリ作成</a>
-                        </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- カテゴリが存在しない場合 -->
+                <div th:if="${categoryTree == null or #lists.isEmpty(categoryTree)}" class="no-data">
+                    <i class="fas fa-folder-open"></i>
+                    <h5>カテゴリがまだ登録されていません</h5>
+                    <p class="mb-3">最初のカテゴリを作成して、部品の分類を始めましょう。</p>
+                    <a href="/admin/categories/new" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>新規カテゴリ作成
+                    </a>
+                </div>
 
-                        <!-- カテゴリツリー表示（シンプル版） -->
-                        <div th:if="${categoryTree != null and not #lists.isEmpty(categoryTree)}">
-                            <div th:each="parentCategory : ${categoryTree}" class="mb-4">
-                                <!-- 大分類表示 -->
-                                <div class="card border-primary">
-                                    <div class="card-header bg-primary text-white">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <i class="bi bi-folder2-open"></i>
-                                                <strong th:text="${parentCategory.name}">大分類名</strong>
-                                            </div>
-                                            <div>
-                                                <a th:href="@{/admin/categories/{id}(id=${parentCategory.id})}" class="btn btn-sm btn-outline-light">詳細</a>
-                                                <a th:href="@{/admin/categories/{id}/edit(id=${parentCategory.id})}" class="btn btn-sm btn-outline-light">編集</a>
-                                            </div>
-                                        </div>
+                <!-- カテゴリツリー表示 -->
+                <div th:if="${categoryTree != null and not #lists.isEmpty(categoryTree)}">
+                    <div th:each="parentCategory : ${categoryTree}" class="mb-3">
+                        <!-- 大分類表示 -->
+                        <div class="category-card card">
+                            <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-folder2-open me-2"></i>
+                                        <strong th:text="${parentCategory.name}">大分類名</strong>
+                                        <span class="category-badge badge bg-light text-dark ms-2">大分類</span>
                                     </div>
-                                    
-                                    <!-- 子カテゴリ表示 -->
-                                    <div class="card-body" th:if="${parentCategory.children != null and not #lists.isEmpty(parentCategory.children)}">
-                                        <div th:each="childCategory : ${parentCategory.children}" class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                                            <div>
-                                                <i class="bi bi-folder text-secondary"></i>
-                                                <span th:text="${childCategory.name}">小分類名</span>
-                                            </div>
-                                            <div>
-                                                <a th:href="@{/admin/categories/{id}(id=${childCategory.id})}" class="btn btn-sm btn-outline-primary">詳細</a>
-                                                <a th:href="@{/admin/categories/{id}/edit(id=${childCategory.id})}" class="btn btn-sm btn-outline-warning">編集</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 子カテゴリがない場合 -->
-                                    <div class="card-body text-muted" th:if="${parentCategory.children == null or #lists.isEmpty(parentCategory.children)}">
-                                        小分類はまだ登録されていません
+                                    <div>
+                                        <a th:href="@{/admin/categories/{id}(id=${parentCategory.id})}" 
+                                           class="btn btn-sm btn-outline-light btn-action">詳細</a>
+                                        <a th:href="@{/admin/categories/{id}/edit(id=${parentCategory.id})}" 
+                                           class="btn btn-sm btn-outline-light btn-action">編集</a>
                                     </div>
                                 </div>
+                            </div>
+                            
+                            <!-- 子カテゴリ表示 -->
+                            <div class="card-body p-0" th:if="${parentCategory.children != null and not #lists.isEmpty(parentCategory.children)}">
+                                <div th:each="childCategory : ${parentCategory.children}" class="child-category-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder text-secondary me-2"></i>
+                                            <span th:text="${childCategory.name}">小分類名</span>
+                                            <span class="category-badge badge bg-secondary ms-2">小分類</span>
+                                        </div>
+                                        <div>
+                                            <a th:href="@{/admin/categories/{id}(id=${childCategory.id})}" 
+                                               class="btn btn-outline-info btn-sm btn-action">詳細</a>
+                                            <a th:href="@{/admin/categories/{id}/edit(id=${childCategory.id})}" 
+                                               class="btn btn-outline-warning btn-sm btn-action">編集</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 子カテゴリがない場合 -->
+                            <div class="card-body text-muted text-center" 
+                                 th:if="${parentCategory.children == null or #lists.isEmpty(parentCategory.children)}">
+                                小分類はまだ登録されていません
                             </div>
                         </div>
                     </div>
@@ -230,9 +331,14 @@
         <div class="row mt-4">
             <div class="col">
                 <a href="/admin" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> 管理者ダッシュボードに戻る
+                    <i class="bi bi-arrow-left me-1"></i> 管理者ダッシュボードに戻る
                 </a>
             </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="text-center mt-5 mb-3">
+            <small class="text-muted">AT部品在庫管理システム &copy; 2025</small>
         </div>
     </div>
 

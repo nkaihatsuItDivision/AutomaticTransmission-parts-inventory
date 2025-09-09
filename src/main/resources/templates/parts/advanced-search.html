@@ -12,7 +12,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
-    <!-- カスタムCSS -->
+    <!-- カスタムCSS（部品一覧画面と完全統一） -->
     <style>
         .navbar-brand {
             font-weight: bold;
@@ -28,6 +28,44 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             border-radius: 15px;
         }
+        .parts-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .parts-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem;
+        }
+        .parts-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .parts-table tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        .btn-action {
+            margin: 0 2px;
+            border-radius: 8px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        /* 高度検索特有のスタイル */
         .form-section {
             background-color: #f8f9fa;
             border-radius: 12px;
@@ -62,7 +100,6 @@
     </style>
 </head>
 <body class="bg-light">
-    
     <!-- ナビゲーションバー（権限制御付き） -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container-fluid">
@@ -227,28 +264,29 @@
             <div class="card-body">
                 <!-- 基本的なフォーム（モデル属性に依存しない） -->
                 <form id="advancedSearchForm" action="/parts/advanced-search" method="post">
-					<!-- 保存済み検索条件 -->
-					                <div class="form-section" id="savedSearchSection" style="display: none;">
-					                    <h6 class="section-title">
-					                        <i class="fas fa-star me-2"></i>保存済み検索条件
-					                    </h6>
-					                    
-					                    <div class="row">
-					                        <div class="col-md-8 mb-3">
-					                            <select class="form-control" id="savedSearchSelect">
-					                                <option value="">保存済み検索を選択...</option>
-					                            </select>
-					                        </div>
-					                        <div class="col-md-4 mb-3">
-					                            <button type="button" class="btn btn-success me-2" onclick="loadSavedSearch()">
-					                                <i class="fas fa-download me-1"></i>読み込み
-					                            </button>
-					                            <button type="button" class="btn btn-danger" onclick="deleteSavedSearch()">
-					                                <i class="fas fa-trash me-1"></i>削除
-					                            </button>
-					                        </div>
-					                    </div>
-					                </div>
+                    <!-- 保存済み検索条件 -->
+                    <div class="form-section" id="savedSearchSection" style="display: none;">
+                        <h6 class="section-title">
+                            <i class="fas fa-star me-2"></i>保存済み検索条件
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <select class="form-control" id="savedSearchSelect">
+                                    <option value="">保存済み検索を選択...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <button type="button" class="btn btn-success me-2" onclick="loadSavedSearch()">
+                                    <i class="fas fa-download me-1"></i>読み込み
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="deleteSavedSearch()">
+                                    <i class="fas fa-trash me-1"></i>削除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- 基本情報セクション -->
                     <div class="form-section">
                         <h6 class="section-title">
@@ -265,7 +303,7 @@
                                        class="form-control" 
                                        id="partNumber"
                                        name="partNumber"
-									   th:value="${criteria != null ? criteria.partNumber : ''}"
+                                       th:value="${criteria != null ? criteria.partNumber : ''}"
                                        placeholder="例: AT12345">
                                 <div class="form-text">部品番号の一部または全部を入力</div>
                             </div>
@@ -279,7 +317,7 @@
                                        class="form-control" 
                                        id="partName"
                                        name="partName"
-									   th:value="${criteria != null ? criteria.partName : ''}"
+                                       th:value="${criteria != null ? criteria.partName : ''}"
                                        placeholder="例: トルクコンバーター">
                                 <div class="form-text">部品名の一部または全部を入力</div>
                             </div>
@@ -295,7 +333,7 @@
                                        class="form-control" 
                                        id="manufacturer"
                                        name="manufacturer"
-									   th:value="${criteria != null ? criteria.manufacturer : ''}"
+                                       th:value="${criteria != null ? criteria.manufacturer : ''}"
                                        placeholder="例: AISIN, JATCO">
                                 <div class="form-text">メーカー名を入力</div>
                             </div>
@@ -305,15 +343,14 @@
                                 <label for="categoryId" class="form-label">
                                     <i class="fas fa-folder me-1"></i>カテゴリ
                                 </label>
-								<select class="form-control" id="categoryId" name="categoryId">
-								    <option value="">すべてのカテゴリ</option>
-								    <!-- Thymeleafでカテゴリを動的に生成 -->
-								    <option th:each="category : ${categories}" 
-								            th:value="${category.id}" 
-								            th:text="${category.name}"
-								            th:selected="${criteria != null and criteria.categoryId != null and criteria.categoryId.toString() == category.id.toString()}">
-								    </option>
-								</select>-- 後でサーバーサイドから動的に追加 -->
+                                <select class="form-control" id="categoryId" name="categoryId">
+                                    <option value="">すべてのカテゴリ</option>
+                                    <!-- Thymeleafでカテゴリを動的に生成 -->
+                                    <option th:each="category : ${categories}" 
+                                            th:value="${category.id}" 
+                                            th:text="${category.name}"
+                                            th:selected="${criteria != null and criteria.categoryId != null and criteria.categoryId.toString() == category.id.toString()}">
+                                    </option>
                                 </select>
                                 <div class="form-text">特定のカテゴリで絞り込み</div>
                             </div>
@@ -337,7 +374,7 @@
                                                    class="form-control" 
                                                    id="minPrice"
                                                    name="minPrice"
-												   th:value="${criteria != null ? criteria.minPrice : ''}"
+                                                   th:value="${criteria != null ? criteria.minPrice : ''}"
                                                    placeholder="0"
                                                    min="0"
                                                    step="100">
@@ -370,34 +407,35 @@
                         </div>
                     </div>
                     
-					<!-- 日付範囲セクションの修正版 -->
-					<div class="form-section">
-					    <h6 class="section-title">
-					        <i class="fas fa-calendar-alt me-2"></i>登録日期間
-					    </h6>
-					    
-					    <div class="row">
-					        <div class="col-md-6 mb-3">
-					            <label for="createdAfter" class="form-label">開始日</label>
-					            <input type="date" 
-					                   class="form-control" 
-					                   id="createdAfter"
-					                   name="createdAfter"
-					                   th:value="${criteria != null ? criteria.createdAfter : ''}">
-					            <div class="form-text">この日付以降に登録された部品</div>
-					        </div>
-					        
-					        <div class="col-md-6 mb-3">
-					            <label for="createdBefore" class="form-label">終了日</label>
-					            <input type="date" 
-					                   class="form-control" 
-					                   id="createdBefore"
-					                   name="createdBefore"
-					                   th:value="${criteria != null ? criteria.createdBefore : ''}">
-					            <div class="form-text">この日付以前に登録された部品</div>
-					        </div>
-					    </div>
-					</div>                    
+                    <!-- 日付範囲セクション -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-calendar-alt me-2"></i>登録日期間
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="createdAfter" class="form-label">開始日</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="createdAfter"
+                                       name="createdAfter"
+                                       th:value="${criteria != null ? criteria.createdAfter : ''}">
+                                <div class="form-text">この日付以降に登録された部品</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="createdBefore" class="form-label">終了日</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="createdBefore"
+                                       name="createdBefore"
+                                       th:value="${criteria != null ? criteria.createdBefore : ''}">
+                                <div class="form-text">この日付以前に登録された部品</div>
+                            </div>
+                        </div>
+                    </div>                    
+                    
                     <!-- アクションボタン -->
                     <div class="row mt-4">
                         <div class="col-12">
@@ -414,11 +452,11 @@
                                         <i class="fas fa-search me-2"></i>検索実行
                                     </button>
                                     
-									<button type="button" 
-									        class="btn btn-outline-info"
-									        onclick="saveSearchCriteria()">
-									    <i class="fas fa-save me-2"></i>条件保存
-									</button>
+                                    <button type="button" 
+                                            class="btn btn-outline-info"
+                                            onclick="saveSearchCriteria()">
+                                        <i class="fas fa-save me-2"></i>条件保存
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -426,79 +464,86 @@
                 </form>
             </div>
         </div>
-		
-		<div th:if="${searchExecuted}" class="card search-card mb-4">
-		    <div class="card-header bg-transparent border-0 pt-4 pb-0">
-		        <h5 class="mb-0">
-		            <i class="fas fa-list-ul me-2"></i>検索結果
-		            <span th:if="${totalCount != null}" class="badge bg-primary ms-2" th:text="${totalCount} + ' 件'"></span>
-		        </h5>
-		    </div>
-		    
-		    <div class="card-body">
-		        <!-- 検索結果なしの場合 -->
-		        <div th:if="${parts == null or #lists.isEmpty(parts)}" class="text-center py-5">
-		            <i class="fas fa-search fa-3x text-muted mb-3"></i>
-		            <h6 class="text-muted">検索条件に一致する部品が見つかりませんでした</h6>
-		            <small class="text-muted">検索条件を変更してお試しください</small>
-		        </div>
-		        
-		        <!-- 検索結果がある場合 -->
-		        <div th:if="${parts != null and not #lists.isEmpty(parts)}">
-		            <!-- 結果テーブル -->
-		            <div class="table-responsive">
-		                <table class="table table-hover">
-		                    <thead class="table-light">
-		                        <tr>
-		                            <th>部品番号</th>
-		                            <th>部品名</th>
-		                            <th>メーカー</th>
-		                            <th>カテゴリ</th>
-		                            <th>価格</th>
-		                            <th>登録日</th>
-		                            <th>アクション</th>
-		                        </tr>
-		                    </thead>
-		                    <tbody>
-		                        <tr th:each="part : ${parts}">
-		                            <td>
-		                                <strong th:text="${part.partNumber}">AT12345</strong>
-		                            </td>
-		                            <td th:text="${part.partName}">トルクコンバーター</td>
-		                            <td>
-		                                <span th:if="${part.manufacturer != null}" 
-		                                      th:text="${part.manufacturer}">AISIN</span>
-		                                <span th:if="${part.manufacturer == null}" 
-		                                      class="text-muted">未設定</span>
-		                            </td>
-		                            <td>
-		                                <span th:if="${part.category != null}" 
-		                                      class="badge bg-secondary" 
-		                                      th:text="${part.category.name}">カテゴリ名</span>
-		                                <span th:if="${part.category == null}" 
-		                                      class="text-muted">未分類</span>
-		                            </td>
-		                            <td>
-		                                <strong th:text="'¥' + ${#numbers.formatInteger(part.price, 0, 'COMMA')}">¥50,000</strong>
-		                            </td>
-		                            <td th:text="${#temporals.format(part.createdAt, 'yyyy/MM/dd')}">2025/09/08</td>
-		                            <td>
-		                                <a th:href="@{/parts/{id}(id=${part.id})}" 
-		                                   class="btn btn-sm btn-outline-primary">
-		                                    <i class="fas fa-eye me-1"></i>詳細
-		                                </a>
-		                                <a th:href="@{/parts/{id}/edit(id=${part.id})}" 
-		                                   class="btn btn-sm btn-outline-secondary ms-1">
-		                                    <i class="fas fa-edit me-1"></i>編集
-		                                </a>
-		                            </td>
-		                        </tr>
-		                    </tbody>
-		                </table>
-		            </div>
-		        </div>
-		    </div>
-		</div>
+        
+        <!-- 検索結果表示 -->
+        <div th:if="${searchExecuted}" class="card parts-table">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">検索結果</h5>
+                        <small class="text-muted" th:if="${totalCount != null}" th:text="'全 ' + ${totalCount} + ' 件の部品'">検索結果</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <!-- 検索結果なしの場合 -->
+                <div th:if="${parts == null or #lists.isEmpty(parts)}" class="no-data">
+                    <i class="fas fa-search"></i>
+                    <h5>検索条件に一致する部品が見つかりませんでした</h5>
+                    <p class="mb-3">検索条件を変更してお試しください</p>
+                </div>
+                
+                <!-- 検索結果がある場合 -->
+                <div th:if="${parts != null and not #lists.isEmpty(parts)}">
+                    <!-- 結果テーブル -->
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>部品番号</th>
+                                    <th>部品名</th>
+                                    <th>メーカー</th>
+                                    <th>カテゴリ</th>
+                                    <th>価格</th>
+                                    <th>登録日</th>
+                                    <th class="text-center">アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="part : ${parts}">
+                                    <td>
+                                        <strong th:text="${part.partNumber}">AT12345</strong>
+                                    </td>
+                                    <td th:text="${part.partName}">トルクコンバーター</td>
+                                    <td>
+                                        <span th:if="${part.manufacturer != null}" 
+                                              th:text="${part.manufacturer}">AISIN</span>
+                                        <span th:if="${part.manufacturer == null}" 
+                                              class="text-muted">未設定</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${part.category != null}" 
+                                              class="badge bg-secondary" 
+                                              th:text="${part.category.name}">カテゴリ名</span>
+                                        <span th:if="${part.category == null}" 
+                                              class="text-muted">未分類</span>
+                                    </td>
+                                    <td>
+                                        <span class="price-display">
+                                            ¥<span th:text="${#numbers.formatDecimal(part.price, 1, 0)}">50,000</span>
+                                        </span>
+                                    </td>
+                                    <td th:text="${#temporals.format(part.createdAt, 'yyyy/MM/dd')}">2025/09/08</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a th:href="@{/parts/{id}(id=${part.id})}" 
+                                               class="btn btn-outline-info btn-sm btn-action">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a th:href="@{/parts/{id}/edit(id=${part.id})}" 
+                                               class="btn btn-outline-warning btn-sm btn-action">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- フッター -->
         <div class="text-center mt-5 mb-3">
@@ -511,234 +556,236 @@
     
     <!-- 基本JavaScript -->
     <script>
-		// 検索条件保存機能
-		function saveSearchCriteria() {
-		    // 現在の検索条件を取得
-		    const criteria = {
-		        partNumber: document.getElementById('partNumber').value,
-		        partName: document.getElementById('partName').value,
-		        manufacturer: document.getElementById('manufacturer').value,
-		        categoryId: document.getElementById('categoryId').value,
-		        minPrice: document.getElementById('minPrice').value,
-		        maxPrice: document.getElementById('maxPrice').value,
-		        createdAfter: document.getElementById('createdAfter').value,
-		        createdBefore: document.getElementById('createdBefore').value
-		    };
-		    
-		    // 空の条件はチェック
-		    const hasValue = Object.values(criteria).some(value => value && value.trim() !== '');
-		    if (!hasValue) {
-		        alert('保存する検索条件を入力してください');
-		        return;
-		    }
-		    
-		    // 保存名を入力
-		    const searchName = prompt('検索条件の名前を入力してください:', '検索条件_' + new Date().toLocaleDateString());
-		    if (!searchName) {
-		        return;
-		    }
-		    
-		    // localStorageに保存
-		    try {
-		        let savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
-		        savedSearches[searchName] = {
-		            criteria: criteria,
-		            savedAt: new Date().toISOString()
-		        };
-		        
-		        localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
-		        
-		        alert('検索条件「' + searchName + '」を保存しました');
-		        updateSavedSearchList();
-		        
-		    } catch (error) {
-		        alert('検索条件の保存に失敗しました');
-		        console.error('Save error:', error);
-		    }
-		}
+        // 検索条件保存機能
+        function saveSearchCriteria() {
+            // 現在の検索条件を取得
+            const criteria = {
+                partNumber: document.getElementById('partNumber').value,
+                partName: document.getElementById('partName').value,
+                manufacturer: document.getElementById('manufacturer').value,
+                categoryId: document.getElementById('categoryId').value,
+                minPrice: document.getElementById('minPrice').value,
+                maxPrice: document.getElementById('maxPrice').value,
+                createdAfter: document.getElementById('createdAfter').value,
+                createdBefore: document.getElementById('createdBefore').value
+            };
+            
+            // 空の条件はチェック
+            const hasValue = Object.values(criteria).some(value => value && value.trim() !== '');
+            if (!hasValue) {
+                alert('保存する検索条件を入力してください');
+                return;
+            }
+            
+            // 保存名を入力
+            const searchName = prompt('検索条件の名前を入力してください:', '検索条件_' + new Date().toLocaleDateString());
+            if (!searchName) {
+                return;
+            }
+            
+            // localStorageに保存
+            try {
+                let savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
+                savedSearches[searchName] = {
+                    criteria: criteria,
+                    savedAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
+                
+                alert('検索条件「' + searchName + '」を保存しました');
+                updateSavedSearchList();
+                
+            } catch (error) {
+                alert('検索条件の保存に失敗しました');
+                console.error('Save error:', error);
+            }
+        }
 
-		// 保存済み検索一覧の更新
-		function updateSavedSearchList() {
-		    try {
-		        const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
-		        const select = document.getElementById('savedSearchSelect');
-		        const section = document.getElementById('savedSearchSection');
-		        
-		        // 選択肢をクリア
-		        select.innerHTML = '<option value="">保存済み検索を選択...</option>';
-		        
-		        // 保存済み検索があるかチェック
-		        const hasSearches = Object.keys(savedSearches).length > 0;
-		        
-		        if (hasSearches) {
-		            // 保存済み検索を追加
-		            Object.keys(savedSearches).forEach(searchName => {
-		                const option = document.createElement('option');
-		                option.value = searchName;
-		                option.textContent = searchName + ' (' + new Date(savedSearches[searchName].savedAt).toLocaleDateString() + ')';
-		                select.appendChild(option);
-		            });
-		            
-		            // セクションを表示
-		            section.style.display = 'block';
-		        } else {
-		            // セクションを非表示
-		            section.style.display = 'none';
-		        }
-		        
-		    } catch (error) {
-		        console.error('List update error:', error);
-		    }
-		}
+        // 保存済み検索一覧の更新
+        function updateSavedSearchList() {
+            try {
+                const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
+                const select = document.getElementById('savedSearchSelect');
+                const section = document.getElementById('savedSearchSection');
+                
+                // 選択肢をクリア
+                select.innerHTML = '<option value="">保存済み検索を選択...</option>';
+                
+                // 保存済み検索があるかチェック
+                const hasSearches = Object.keys(savedSearches).length > 0;
+                
+                if (hasSearches) {
+                    // 保存済み検索を追加
+                    Object.keys(savedSearches).forEach(searchName => {
+                        const option = document.createElement('option');
+                        option.value = searchName;
+                        option.textContent = searchName + ' (' + new Date(savedSearches[searchName].savedAt).toLocaleDateString() + ')';
+                        select.appendChild(option);
+                    });
+                    
+                    // セクションを表示
+                    section.style.display = 'block';
+                } else {
+                    // セクションを非表示
+                    section.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('List update error:', error);
+            }
+        }
 
-		// 保存済み検索の読み込み
-		function loadSavedSearch() {
-		    const selectedName = document.getElementById('savedSearchSelect').value;
-		    if (!selectedName) {
-		        alert('読み込む検索条件を選択してください');
-		        return;
-		    }
-		    
-		    try {
-		        const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
-		        const searchData = savedSearches[selectedName];
-		        
-		        if (!searchData) {
-		            alert('選択された検索条件が見つかりません');
-		            return;
-		        }
-		        
-		        const criteria = searchData.criteria;
-		        
-		        // フォームに値を設定
-		        document.getElementById('partNumber').value = criteria.partNumber || '';
-		        document.getElementById('partName').value = criteria.partName || '';
-		        document.getElementById('manufacturer').value = criteria.manufacturer || '';
-		        document.getElementById('categoryId').value = criteria.categoryId || '';
-		        document.getElementById('minPrice').value = criteria.minPrice || '';
-		        document.getElementById('maxPrice').value = criteria.maxPrice || '';
-		        document.getElementById('createdAfter').value = criteria.createdAfter || '';
-		        document.getElementById('createdBefore').value = criteria.createdBefore || '';
-		        
-		        alert('検索条件「' + selectedName + '」を読み込みました');
-		        
-		    } catch (error) {
-		        alert('検索条件の読み込みに失敗しました');
-		        console.error('Load error:', error);
-		    }
-		}
+        // 保存済み検索の読み込み
+        function loadSavedSearch() {
+            const selectedName = document.getElementById('savedSearchSelect').value;
+            if (!selectedName) {
+                alert('読み込む検索条件を選択してください');
+                return;
+            }
+            
+            try {
+                const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
+                const searchData = savedSearches[selectedName];
+                
+                if (!searchData) {
+                    alert('選択された検索条件が見つかりません');
+                    return;
+                }
+                
+                const criteria = searchData.criteria;
+                
+                // フォームに値を設定
+                document.getElementById('partNumber').value = criteria.partNumber || '';
+                document.getElementById('partName').value = criteria.partName || '';
+                document.getElementById('manufacturer').value = criteria.manufacturer || '';
+                document.getElementById('categoryId').value = criteria.categoryId || '';
+                document.getElementById('minPrice').value = criteria.minPrice || '';
+                document.getElementById('maxPrice').value = criteria.maxPrice || '';
+                document.getElementById('createdAfter').value = criteria.createdAfter || '';
+                document.getElementById('createdBefore').value = criteria.createdBefore || '';
+                
+                alert('検索条件「' + selectedName + '」を読み込みました');
+                
+            } catch (error) {
+                alert('検索条件の読み込みに失敗しました');
+                console.error('Load error:', error);
+            }
+        }
 
-		// 保存済み検索の削除
-		function deleteSavedSearch() {
-		    const selectedName = document.getElementById('savedSearchSelect').value;
-		    if (!selectedName) {
-		        alert('削除する検索条件を選択してください');
-		        return;
-		    }
-		    
-		    if (!confirm('検索条件「' + selectedName + '」を削除しますか？')) {
-		        return;
-		    }
-		    
-		    try {
-		        let savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
-		        delete savedSearches[selectedName];
-		        
-		        localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
-		        
-		        alert('検索条件「' + selectedName + '」を削除しました');
-		        updateSavedSearchList();
-		        
-		    } catch (error) {
-		        alert('検索条件の削除に失敗しました');
-		        console.error('Delete error:', error);
-		    }
-		}
-		// フォームリセット機能（修正版）
-		function resetForm() {
-		    document.getElementById('advancedSearchForm').reset();
-		    // 今日の日付をデフォルトで終了日に設定
-		    const today = new Date().toISOString().split('T')[0];
-		    document.getElementById('createdBefore').value = today; // 修正：createdDateTo → createdBefore
-		}
+        // 保存済み検索の削除
+        function deleteSavedSearch() {
+            const selectedName = document.getElementById('savedSearchSelect').value;
+            if (!selectedName) {
+                alert('削除する検索条件を選択してください');
+                return;
+            }
+            
+            if (!confirm('検索条件「' + selectedName + '」を削除しますか？')) {
+                return;
+            }
+            
+            try {
+                let savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '{}');
+                delete savedSearches[selectedName];
+                
+                localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
+                
+                alert('検索条件「' + selectedName + '」を削除しました');
+                updateSavedSearchList();
+                
+            } catch (error) {
+                alert('検索条件の削除に失敗しました');
+                console.error('Delete error:', error);
+            }
+        }
+        
+        // フォームリセット機能（修正版）
+        function resetForm() {
+            document.getElementById('advancedSearchForm').reset();
+            // 今日の日付をデフォルトで終了日に設定
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('createdBefore').value = today;
+        }
 
-		// ページ読み込み時の初期化（修正版）
-		document.addEventListener('DOMContentLoaded', function() {
-		    // 今日の日付をデフォルトで終了日に設定（検索条件がない場合）
-		    const createdBefore = document.getElementById('createdBefore'); // 修正：createdDateTo → createdBefore
-		    if (!createdBefore.value) {
-		        const today = new Date().toISOString().split('T')[0];
-		        createdBefore.value = today;
-		    }
-		    
-		    // フォーム送信時の処理
-		    document.getElementById('advancedSearchForm').addEventListener('submit', function(e) {
-		        // 価格入力からカンマを削除（数値型フィールドのため）
-		        const minPrice = document.getElementById('minPrice');
-		        const maxPrice = document.getElementById('maxPrice');
-		        
-		        if (minPrice.value) {
-		            minPrice.value = minPrice.value.replace(/,/g, '');
-		        }
-		        if (maxPrice.value) {
-		            maxPrice.value = maxPrice.value.replace(/,/g, '');
-		        }
-		        
-		        // バリデーション
-		        const minVal = parseFloat(minPrice.value) || 0;
-		        const maxVal = parseFloat(maxPrice.value) || Infinity;
-		        
-		        if (minVal > maxVal) {
-		            e.preventDefault();
-		            alert('最低価格は最高価格以下で入力してください');
-		            return false;
-		        }
-		        
-		        // 送信前にローディング表示
-		        const submitBtn = this.querySelector('button[type="submit"]');
-		        const originalText = submitBtn.innerHTML;
-		        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>検索中...';
-		        submitBtn.disabled = true;
-		        
-		        // フォーム送信後にボタンを元に戻す（ページ遷移しない場合）
-		        setTimeout(function() {
-		            submitBtn.innerHTML = originalText;
-		            submitBtn.disabled = false;
-		        }, 5000);
-		    });
-		    
-		    // 価格入力でのフォーマット表示
-		    const priceInputs = document.querySelectorAll('#minPrice, #maxPrice');
-		    priceInputs.forEach(input => {
-		        input.addEventListener('focus', function() {
-		            if (this.value) {
-		                this.value = this.value.replace(/,/g, '');
-		            }
-		        });
-		    });
-		    
-		    // 日付バリデーション（修正版）
-		    const dateFrom = document.getElementById('createdAfter'); // 修正：createdDateFrom → createdAfter
-		    const dateTo = document.getElementById('createdBefore');   // 修正：createdDateTo → createdBefore
-		    
-		    if (dateFrom && dateTo) {
-		        dateFrom.addEventListener('change', function() {
-		            if (this.value && dateTo.value && this.value > dateTo.value) {
-		                alert('開始日は終了日以前で入力してください');
-		                this.value = '';
-		            }
-		        });
-		        
-		        dateTo.addEventListener('change', function() {
-		            if (this.value && dateFrom.value && this.value < dateFrom.value) {
-		                alert('終了日は開始日以降で入力してください');
-		                this.value = '';
-		            }
-		        });
-		    }
-			// 保存済み検索一覧の初期化
-			updateSavedSearchList();
-		});
+        // ページ読み込み時の初期化（修正版）
+        document.addEventListener('DOMContentLoaded', function() {
+            // 今日の日付をデフォルトで終了日に設定（検索条件がない場合）
+            const createdBefore = document.getElementById('createdBefore');
+            if (!createdBefore.value) {
+                const today = new Date().toISOString().split('T')[0];
+                createdBefore.value = today;
+            }
+            
+            // フォーム送信時の処理
+            document.getElementById('advancedSearchForm').addEventListener('submit', function(e) {
+                // 価格入力からカンマを削除（数値型フィールドのため）
+                const minPrice = document.getElementById('minPrice');
+                const maxPrice = document.getElementById('maxPrice');
+                
+                if (minPrice.value) {
+                    minPrice.value = minPrice.value.replace(/,/g, '');
+                }
+                if (maxPrice.value) {
+                    maxPrice.value = maxPrice.value.replace(/,/g, '');
+                }
+                
+                // バリデーション
+                const minVal = parseFloat(minPrice.value) || 0;
+                const maxVal = parseFloat(maxPrice.value) || Infinity;
+                
+                if (minVal > maxVal) {
+                    e.preventDefault();
+                    alert('最低価格は最高価格以下で入力してください');
+                    return false;
+                }
+                
+                // 送信前にローディング表示
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>検索中...';
+                submitBtn.disabled = true;
+                
+                // フォーム送信後にボタンを元に戻す（ページ遷移しない場合）
+                setTimeout(function() {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 5000);
+            });
+            
+            // 価格入力でのフォーマット表示
+            const priceInputs = document.querySelectorAll('#minPrice, #maxPrice');
+            priceInputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (this.value) {
+                        this.value = this.value.replace(/,/g, '');
+                    }
+                });
+            });
+            
+            // 日付バリデーション（修正版）
+            const dateFrom = document.getElementById('createdAfter');
+            const dateTo = document.getElementById('createdBefore');
+            
+            if (dateFrom && dateTo) {
+                dateFrom.addEventListener('change', function() {
+                    if (this.value && dateTo.value && this.value > dateTo.value) {
+                        alert('開始日は終了日以前で入力してください');
+                        this.value = '';
+                    }
+                });
+                
+                dateTo.addEventListener('change', function() {
+                    if (this.value && dateFrom.value && this.value < dateFrom.value) {
+                        alert('終了日は開始日以降で入力してください');
+                        this.value = '';
+                    }
+                });
+            }
+            
+            // 保存済み検索一覧の初期化
+            updateSavedSearchList();
+        });
     </script>
 </body>
 </html>
