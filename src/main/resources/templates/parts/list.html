@@ -92,6 +92,12 @@
                             部品一覧
                         </a>
                     </li>
+					<li class="nav-item">
+					    <a class="nav-link" href="/parts/advanced-search">
+					        <i class="fas fa-search-plus me-1"></i>
+					        高度検索
+					    </a>
+					</li>
                     <li class="nav-item">
                         <a class="nav-link" href="/parts/new">
                             <i class="fas fa-plus me-1"></i>
@@ -106,6 +112,12 @@
                             管理者ダッシュボード
                         </a>
                     </li>
+					<li class="nav-item" sec:authorize="hasRole('ADMIN')">
+					    <a class="nav-link" href="/admin/categories">
+					        <i class="fas fa-folder me-1"></i>
+					        カテゴリ管理
+					    </a>
+					</li>
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                         <a class="nav-link" href="/admin/users">
                             <i class="bi bi-people me-1"></i>
@@ -268,12 +280,31 @@
                         <input type="text" class="form-control" id="manufacturer" name="manufacturer" 
                                placeholder="メーカー名で検索">
                     </div>
-                    <div class="col-md-2">
+					<div class="col-md-3">
+					    <label for="categoryId" class="form-label">カテゴリ</label>
+					    <select class="form-control" id="categoryId" name="categoryId">
+					        <option value="">すべてのカテゴリ</option>
+					        <th:block th:each="parentCategory : ${categories}" th:if="${parentCategory.parent == null}">
+					            <!-- 大分類 -->
+					            <option th:value="${parentCategory.id}" 
+					                    th:text="'【大分類】' + ${parentCategory.name}"
+					                    th:selected="${searchCategoryId != null and searchCategoryId == parentCategory.id}">
+					            </option>
+					            <!-- 小分類 -->
+					            <option th:each="childCategory : ${parentCategory.children}"
+					                    th:value="${childCategory.id}" 
+					                    th:text="'　├ ' + ${childCategory.name}"
+					                    th:selected="${searchCategoryId != null and searchCategoryId == childCategory.id}">
+					            </option>
+					        </th:block>
+					    </select>
+					</div>
+                    <div class="col-md-1">
                         <label for="minPrice" class="form-label">最低価格</label>
                         <input type="number" class="form-control" id="minPrice" name="minPrice" 
                                placeholder="0" step="0.01">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <label for="maxPrice" class="form-label">最高価格</label>
                         <input type="number" class="form-control" id="maxPrice" name="maxPrice" 
                                placeholder="999999" step="0.01">
@@ -288,6 +319,10 @@
                     <a href="/parts" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-undo me-1"></i>検索解除
                     </a>
+					<span th:if="${selectedCategory}" class="badge bg-info ms-2">
+					    <i class="fas fa-filter me-1"></i>
+					    カテゴリ: <span th:text="${selectedCategory.getFullPath()}">カテゴリ名</span>
+					</span>
                 </div>
             </div>
         </div>
@@ -313,6 +348,7 @@
                                     <th>部品名</th>
                                     <th>価格</th>
                                     <th>メーカー</th>
+									<th>カテゴリ</th>
                                     <th>説明</th>
                                     <th>登録日時</th>
                                     <th class="text-center">操作</th>
@@ -330,6 +366,18 @@
                                         </span>
                                     </td>
                                     <td th:text="${part.manufacturer ?: '-'}">AISIN</td>
+									<td>
+									    <span th:if="${part.category != null}" 
+									          class="badge bg-secondary text-wrap"
+									          th:text="${part.category.name}"
+									          th:title="${part.category.getFullPath()}">
+									        カテゴリ
+									    </span>
+									    <span th:unless="${part.category != null}" 
+									          class="text-muted small">
+									        未分類
+									    </span>
+									</td>
                                     <td>
                                         <span th:if="${part.description != null and !part.description.empty}"
                                               th:text="${#strings.abbreviate(part.description, 30)}">
@@ -356,17 +404,18 @@
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <!-- 削除ボタン（管理者のみ） -->
-                                            <form sec:authorize="hasRole('ADMIN')" 
-                                                  th:action="@{/parts/{id}/delete(id=${part.id})}" 
-                                                  method="post" 
-                                                  style="display: inline;"
-                                                  onsubmit="return confirm('本当に削除しますか？\n部品番号: ' + [[${part.partNumber}]])">
-                                                <button type="submit" 
-                                                        class="btn btn-outline-danger btn-sm btn-action" 
-                                                        title="削除">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+											<form sec:authorize="hasRole('ADMIN')"
+											      th:action="@{/parts/{id}/delete(id=${part.id})}"
+											      method="post"
+											      style="display: inline;"
+											      th:data-part-number="${part.partNumber}"
+											      onsubmit="return confirm('本当に削除しますか？\n部品番号: ' + this.dataset.partNumber)">
+											    <button type="submit"
+											            class="btn btn-outline-danger btn-sm btn-action"
+											            title="削除">
+											        <i class="fas fa-trash"></i>
+											    </button>
+											</form>
                                         </div>
                                     </td>
                                 </tr>

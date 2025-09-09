@@ -3,12 +3,15 @@ package com.example.automatictransmissionpartsinventory.controller;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,16 +19,22 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.automatictransmissionpartsinventory.dto.AdvancedSearchCriteria;
 import com.example.automatictransmissionpartsinventory.entity.AutomativePart;
+import com.example.automatictransmissionpartsinventory.entity.Category;
 import com.example.automatictransmissionpartsinventory.exception.ServiceException;
 import com.example.automatictransmissionpartsinventory.service.AutomaticPartService;
+import com.example.automatictransmissionpartsinventory.service.CategoryService;
 import com.example.automatictransmissionpartsinventory.service.impl.AutomaticPartCsvService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +54,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/parts")
 @Slf4j
 public class AutomaticPartController {
+	
+	@Autowired
+	private CategoryService categoryService;
 
     @Autowired
     private AutomaticPartService automaticPartService;
@@ -67,6 +79,10 @@ public class AutomaticPartController {
         try {
             List<AutomativePart> parts = automaticPartService.findAllParts();
             model.addAttribute("parts", parts);
+            
+            // ★追加: カテゴリ一覧をモデルに追加（フィルタ用）
+            List<Category> categories = categoryService.findActiveCategories();
+            model.addAttribute("categories", categories);
             
             log.info("部品一覧表示処理完了: {} 件取得", parts.size());
             return "parts/list";
@@ -124,6 +140,15 @@ public class AutomaticPartController {
         
         // 空のAutomaticPartオブジェクトを作成してフォームに渡す
         model.addAttribute("part", new AutomativePart());
+        
+        // ★追加: カテゴリ一覧を取得してフォームに渡す
+        try {
+            List<Category> categories = categoryService.findActiveCategories();
+            model.addAttribute("categories", categories);
+        } catch (Exception e) {
+            log.warn("カテゴリ一覧取得でエラーが発生しましたが、処理を続行します", e);
+            model.addAttribute("categories", List.of()); // 空リストで継続
+        }
         
         log.info("新規登録画面表示処理完了");
         return "parts/form";
@@ -193,6 +218,10 @@ public class AutomaticPartController {
             if (partOptional.isPresent()) {
                 model.addAttribute("part", partOptional.get());
                 model.addAttribute("isEdit", true); // 編集モードのフラグ
+                
+                // ★追加: カテゴリ一覧を取得してフォームに渡す
+                List<Category> categories = categoryService.findActiveCategories();
+                model.addAttribute("categories", categories);
                 
                 log.info("編集画面表示処理完了: ID={}", id);
                 return "parts/form";
@@ -305,10 +334,11 @@ public class AutomaticPartController {
                         @RequestParam(required = false) String manufacturer,
                         @RequestParam(required = false) BigDecimal minPrice,
                         @RequestParam(required = false) BigDecimal maxPrice,
+                        @RequestParam(required = false) Long categoryId, // ★追加
                         Model model) {
         
-        log.info("検索処理開始: 部品名={}, メーカー={}, 最低価格={}, 最高価格={}", 
-                partName, manufacturer, minPrice, maxPrice);
+        log.info("検索処理開始: 部品名={}, メーカー={}, 最低価格={}, 最高価格={}, カテゴリID={}", 
+                partName, manufacturer, minPrice, maxPrice, categoryId);
         
         try {
             List<AutomativePart> searchResults;
@@ -316,10 +346,11 @@ public class AutomaticPartController {
             // パラメータがすべて空の場合は全件取得
             boolean hasSearchCondition = (partName != null && !partName.trim().isEmpty()) ||
                                         (manufacturer != null && !manufacturer.trim().isEmpty()) ||
-                                        minPrice != null || maxPrice != null;
+                                        minPrice != null || maxPrice != null ||
+                                        categoryId != null; // ★追加
             
             if (hasSearchCondition) {
-                searchResults = automaticPartService.findByConditions(partName, manufacturer, minPrice, maxPrice);
+                searchResults = automaticPartService.findByConditions(partName, manufacturer, minPrice, maxPrice, categoryId); // ★修正
                 log.info("検索処理完了: {} 件取得", searchResults.size());
             } else {
                 searchResults = automaticPartService.findAllParts();
@@ -334,6 +365,16 @@ public class AutomaticPartController {
             model.addAttribute("searchManufacturer", manufacturer);
             model.addAttribute("searchMinPrice", minPrice);
             model.addAttribute("searchMaxPrice", maxPrice);
+            model.addAttribute("searchCategoryId", categoryId); // ★追加
+            
+            // ★追加: カテゴリ一覧と選択カテゴリをモデルに追加
+            List<Category> categories = categoryService.findActiveCategories();
+            model.addAttribute("categories", categories);
+            
+            if (categoryId != null) {
+                categoryService.findById(categoryId).ifPresent(category -> 
+                    model.addAttribute("selectedCategory", category));
+            }
             
             return "parts/list";
             
@@ -458,5 +499,269 @@ public class AutomaticPartController {
     	    redirectAttributes.addFlashAttribute("errorMessage", "インポート処理に失敗しました");
     	    return "redirect:/parts/import/csv";
     	}
+  }
+//========================================
+ // Phase 8.3 Step 6-1で追加: 高度検索機能
+ // ========================================
+
+ /**
+  * 高度検索画面の表示
+  * GET /parts/advanced-search
+  */
+ @GetMapping("/advanced-search")
+ public String showAdvancedSearch(Model model, AdvancedSearchCriteria criteria) {
+     log.info("高度検索画面表示開始");
+     
+     try {
+         // 検索条件が指定されている場合は検索実行
+         if (!criteria.isEmpty()) {
+             log.info("検索条件が指定されているため、検索を実行します: {}", criteria);
+             
+             // 高度検索の実行
+             Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
+             long totalCount = automaticPartService.countByAdvancedCriteria(criteria);
+             
+             // 検索統計情報の取得
+             Map<String, Object> statistics = automaticPartService.getSearchStatistics(criteria);
+             
+             model.addAttribute("parts", parts);
+             model.addAttribute("totalCount", totalCount);
+             model.addAttribute("searchExecuted", true);
+             model.addAttribute("statistics", statistics);
+             
+             // ページネーション情報
+             model.addAttribute("currentPage", criteria.getPage());
+             model.addAttribute("totalPages", parts.getTotalPages());
+             model.addAttribute("pageSize", criteria.getSize());
+             model.addAttribute("hasNext", parts.hasNext());
+             model.addAttribute("hasPrevious", parts.hasPrevious());
+             
+             log.info("検索完了: 結果{}件, ページ{}/{}", totalCount, criteria.getPage() + 1, parts.getTotalPages());
+             
+         } else {
+             log.info("検索条件未指定のため、検索フォームのみ表示");
+             model.addAttribute("searchExecuted", false);
+         }
+         
+         // カテゴリ一覧（検索条件用）
+         List<Category> categories = categoryService.findActiveCategories();
+         model.addAttribute("categories", categories);
+         
+         // 検索条件をモデルに追加
+         model.addAttribute("criteria", criteria);
+         
+         // ソート選択肢の設定
+         addSortOptionsToModel(model);
+         
+         log.info("高度検索画面表示完了");
+         
+     } catch (Exception e) {
+         log.error("高度検索画面表示でエラーが発生しました", e);
+         model.addAttribute("error", "検索中にエラーが発生しました: " + e.getMessage());
+         model.addAttribute("searchExecuted", false);
+     }
+     
+     return "parts/advanced-search";
+ }
+
+ /**
+  * 高度検索のAjax処理
+  * POST /parts/api/advanced-search
+  */
+ @PostMapping("/api/advanced-search")
+ @ResponseBody
+ public ResponseEntity<?> advancedSearchApi(@RequestBody AdvancedSearchCriteria criteria) {
+     log.info("Ajax高度検索API呼び出し開始: {}", criteria);
+     
+     try {
+         // 検索条件の妥当性チェック
+         Map<String, String> validationErrors = automaticPartService.validateSearchCriteria(criteria);
+         if (!validationErrors.isEmpty()) {
+             log.warn("検索条件に不正な値があります: {}", validationErrors);
+             return ResponseEntity.badRequest().body(createErrorResponse("検索条件が不正です", validationErrors));
+         }
+         
+         // デフォルト値の設定
+         criteria.setDefaultSort();
+         criteria.setDefaultPagination();
+         
+         // 高度検索の実行
+         Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
+         long totalCount = automaticPartService.countByAdvancedCriteria(criteria);
+         
+         // 検索統計情報の取得
+         Map<String, Object> statistics = automaticPartService.getSearchStatistics(criteria);
+         
+         // レスポンスの構築
+         Map<String, Object> response = new HashMap<>();
+         response.put("success", true);
+         response.put("parts", parts.getContent());
+         response.put("totalCount", totalCount);
+         response.put("currentPage", parts.getNumber());
+         response.put("totalPages", parts.getTotalPages());
+         response.put("pageSize", parts.getSize());
+         response.put("hasNext", parts.hasNext());
+         response.put("hasPrevious", parts.hasPrevious());
+         response.put("statistics", statistics);
+         
+         log.info("Ajax高度検索API呼び出し完了: 結果{}件", totalCount);
+         return ResponseEntity.ok(response);
+         
+     } catch (Exception e) {
+         log.error("Ajax高度検索API呼び出しでエラーが発生しました", e);
+         return ResponseEntity.badRequest().body(createErrorResponse("検索処理に失敗しました", e.getMessage()));
+     }
+ }
+
+ /**
+  * 検索条件のリセット処理
+  * POST /parts/reset-search
+  */
+ @PostMapping("/reset-search")
+ public String resetSearch(Model model) {
+     log.info("検索条件リセット");
+     
+     // 空の検索条件で高度検索画面にリダイレクト
+     return "redirect:/parts/advanced-search";
+ }
+
+ /**
+  * 検索条件の保存処理（お気に入り検索）
+  * POST /parts/save-search
+  */
+ @PostMapping("/save-search")
+ @ResponseBody
+ public ResponseEntity<?> saveSearchCriteria(@RequestBody Map<String, Object> request) {
+     log.info("検索条件保存API呼び出し開始");
+     
+     try {
+         String searchName = (String) request.get("searchName");
+         @SuppressWarnings("unchecked")
+         Map<String, Object> criteriaMap = (Map<String, Object>) request.get("criteria");
+         
+         if (searchName == null || searchName.trim().isEmpty()) {
+             return ResponseEntity.badRequest().body(createErrorResponse("検索名は必須です", null));
+         }
+         
+         // TODO: 実際の保存処理（データベースまたはセッション）
+         // 現在は成功レスポンスのみ返す
+         
+         Map<String, Object> response = new HashMap<>();
+         response.put("success", true);
+         response.put("message", "検索条件 '" + searchName + "' を保存しました");
+         
+         log.info("検索条件保存完了: {}", searchName);
+         return ResponseEntity.ok(response);
+         
+     } catch (Exception e) {
+         log.error("検索条件保存でエラーが発生しました", e);
+         return ResponseEntity.badRequest().body(createErrorResponse("検索条件の保存に失敗しました", e.getMessage()));
+     }
+ }
+
+ /**
+  * ソート選択肢をモデルに追加
+  */
+ private void addSortOptionsToModel(Model model) {
+     Map<String, String> sortOptions = new HashMap<>();
+     sortOptions.put("updatedAt", "更新日時");
+     sortOptions.put("createdAt", "登録日時");
+     sortOptions.put("partNumber", "部品番号");
+     sortOptions.put("partName", "部品名");
+     sortOptions.put("manufacturer", "メーカー");
+     sortOptions.put("price", "価格");
+     sortOptions.put("categoryName", "カテゴリ");
+     
+     Map<String, String> sortOrderOptions = new HashMap<>();
+     sortOrderOptions.put("DESC", "降順");
+     sortOrderOptions.put("ASC", "昇順");
+     
+     model.addAttribute("sortOptions", sortOptions);
+     model.addAttribute("sortOrderOptions", sortOrderOptions);
+ }
+
+ /**
+  * エラーレスポンスの生成
+  */
+ private Map<String, Object> createErrorResponse(String message, Object details) {
+     Map<String, Object> errorResponse = new HashMap<>();
+     errorResponse.put("success", false);
+     errorResponse.put("error", message);
+     if (details != null) {
+         errorResponse.put("details", details);
+     }
+     return errorResponse;
+ }
+
+ /**
+  * 検索結果の統計情報表示
+  * GET /parts/search-statistics
+  */
+ @GetMapping("/search-statistics")
+ @ResponseBody
+ public ResponseEntity<?> getSearchStatistics(AdvancedSearchCriteria criteria) {
+     log.info("検索統計情報API呼び出し開始");
+     
+     try {
+         Map<String, Object> statistics = automaticPartService.getSearchStatistics(criteria);
+         
+         Map<String, Object> response = new HashMap<>();
+         response.put("success", true);
+         response.put("statistics", statistics);
+         
+         return ResponseEntity.ok(response);
+         
+     } catch (Exception e) {
+         log.error("検索統計情報取得でエラーが発生しました", e);
+         return ResponseEntity.badRequest().body(createErrorResponse("統計情報の取得に失敗しました", e.getMessage()));
+     }
+ }
+ /**
+  * 高度検索のフォーム送信処理
+  */
+ @PostMapping("/advanced-search")
+ public String processAdvancedSearch(@ModelAttribute AdvancedSearchCriteria criteria, Model model) {
+     log.info("高度検索フォーム送信処理開始: {}", criteria);
+     
+     try {
+         // デフォルト値の設定
+         criteria.setDefaultSort();
+         criteria.setDefaultPagination();
+         
+         // 高度検索の実行
+         Page<AutomativePart> parts = automaticPartService.searchByAdvancedCriteria(criteria);
+         
+         // 結果をモデルに追加
+         model.addAttribute("parts", parts.getContent());
+         model.addAttribute("totalCount", parts.getTotalElements());
+         model.addAttribute("searchExecuted", true);
+         
+         // カテゴリ一覧（検索条件用）
+         List<Category> categories = categoryService.findActiveCategories();
+         model.addAttribute("categories", categories);
+         model.addAttribute("criteria", criteria);
+         
+         // 成功メッセージ
+         if (parts.getTotalElements() > 0) {
+             model.addAttribute("successMessage", 
+                 String.format("検索完了: %d件の部品が見つかりました", parts.getTotalElements()));
+         } else {
+             model.addAttribute("infoMessage", "検索条件に一致する部品が見つかりませんでした");
+         }
+         
+         log.info("高度検索フォーム送信処理完了: {}件の結果", parts.getTotalElements());
+         
+     } catch (Exception e) {
+         log.error("高度検索フォーム送信処理で予期せぬエラーが発生", e);
+         model.addAttribute("errorMessage", "検索中にエラーが発生しました: " + e.getMessage());
+         
+         // エラー時もカテゴリ一覧を表示
+         List<Category> categories = categoryService.findActiveCategories();
+         model.addAttribute("categories", categories);
+         model.addAttribute("criteria", criteria);
+         model.addAttribute("searchExecuted", false);
+     }
+     
+     return "parts/advanced-search";
  }
 }

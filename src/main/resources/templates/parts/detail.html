@@ -82,6 +82,47 @@
             border-radius: 15px 15px 0 0;
             padding: 1rem 1.5rem;
         }
+        /* ★追加: カテゴリ情報カード用スタイル */
+        .category-card {
+            background: #fff3e0;
+            border: none;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        .category-card .card-header {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 1rem 1.5rem;
+        }
+        .category-badge {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .category-link {
+            color: #ff9800;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .category-link:hover {
+            color: #f57c00;
+            text-decoration: underline;
+        }
+        .no-category {
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
         .btn-custom {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -173,9 +214,150 @@
                 width: 100%;
             }
         }
+		/* ボタンレスポンシブ対応の改善 */
+		@media (max-width: 768px) {
+		    .btn-group-mobile {
+		        display: flex;
+		        flex-direction: column;
+		        gap: 0.5rem;
+		        align-items: stretch;
+		    }
+		    .btn-group-mobile .btn {
+		        margin: 0;
+		        width: 100%;
+		        min-width: auto;
+		    }
+		}
+
+		@media (min-width: 769px) and (max-width: 1200px) {
+		    .btn-custom,
+		    .btn-warning-custom,
+		    .btn-danger-custom,
+		    .btn-secondary-custom {
+		        padding: 0.6rem 1.5rem;
+		        font-size: 1rem;
+		        margin: 0 0.25rem;
+		    }
+		}
+
+		@media (max-width: 480px) {
+		    .btn-custom,
+		    .btn-warning-custom,
+		    .btn-danger-custom,
+		    .btn-secondary-custom {
+		        padding: 0.75rem 1rem;
+		        font-size: 0.95rem;
+		        margin: 0;
+		    }
+		}
     </style>
 </head>
 <body class="bg-light">
+	<!-- ナビゲーションバー（権限制御付き） -->
+	<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+	    <div class="container-fluid">
+	        <a class="navbar-brand" href="/parts">
+	            <i class="fas fa-cogs me-2"></i>
+	            AT部品在庫管理システム
+	        </a>
+	        
+	        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+	            <span class="navbar-toggler-icon"></span>
+	        </button>
+	        
+	        <div class="collapse navbar-collapse" id="navbarNav">
+	            <ul class="navbar-nav me-auto">
+	                <!-- 部品管理メニュー（全ユーザー） -->
+	                <li class="nav-item">
+	                    <a class="nav-link active" href="/parts">
+	                        <i class="fas fa-list me-1"></i>
+	                        部品一覧
+	                    </a>
+	                </li>
+					<li class="nav-item">
+					    <a class="nav-link" href="/parts/advanced-search">
+					        <i class="fas fa-search-plus me-1"></i>
+					        高度検索
+					    </a>
+					</li>
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts/new">
+	                        <i class="fas fa-plus me-1"></i>
+	                        部品追加
+	                    </a>
+	                </li>
+	                
+	                <!-- 管理者専用メニュー（管理者のみ表示） -->
+	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+	                    <a class="nav-link" href="/admin">
+	                        <i class="bi bi-speedometer2 me-1"></i>
+	                        管理者ダッシュボード
+	                    </a>
+	                </li>
+					<li class="nav-item" sec:authorize="hasRole('ADMIN')">
+					    <a class="nav-link" href="/admin/categories">
+					        <i class="fas fa-folder me-1"></i>
+					        カテゴリ管理
+					    </a>
+					</li>
+	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+	                    <a class="nav-link" href="/admin/users">
+	                        <i class="bi bi-people me-1"></i>
+	                        ユーザー管理
+	                    </a>
+	                </li>
+	            </ul>
+	            
+	            <!-- CSV機能（管理者のみ） -->
+	            <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts/export/csv">
+	                        <i class="fas fa-download me-1"></i>
+	                        CSV エクスポート
+	                    </a>
+	                </li>
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts/import/csv">
+	                        <i class="fas fa-upload me-1"></i>
+	                        CSV インポート
+	                    </a>
+	                </li>
+	            </ul>
+	            
+	            <!-- ユーザー情報・ログアウト -->
+	            <ul class="navbar-nav">
+	                <li class="nav-item dropdown">
+	                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+	                        <i class="bi bi-person-circle me-1"></i>
+	                        <span sec:authentication="name">ユーザー</span>
+	                        <!-- 権限バッジ表示 -->
+	                        <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+	                        <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
+	                    </a>
+	                    <ul class="dropdown-menu">
+	                        <!-- 管理者専用設定 -->
+	                        <li sec:authorize="hasRole('ADMIN')">
+	                            <a class="dropdown-item" href="/admin/settings">
+	                                <i class="bi bi-gear me-1"></i>システム設定
+	                            </a>
+	                        </li>
+	                        <li sec:authorize="hasRole('ADMIN')">
+	                            <hr class="dropdown-divider">
+	                        </li>
+	                        <li>
+	                            <form th:action="@{/logout}" method="post" class="d-inline">
+	                                <button type="submit" class="dropdown-item">
+	                                    <i class="bi bi-box-arrow-right me-1"></i>ログアウト
+	                                </button>
+	                            </form>
+	                        </li>
+	                    </ul>
+	                </li>
+	            </ul>
+	        </div>
+	    </div>
+	</nav>
+
     <!-- ヘッダー -->
     <div class="header-section">
         <div class="container">
@@ -206,6 +388,64 @@
                     <i class="fas fa-barcode me-2"></i>
                     <span th:text="${part.partNumber}">AT001</span>
                 </div>
+                <!-- ★追加: カテゴリバッジ（ヘッダー部分） -->
+                <div th:if="${part.category != null}" class="mt-3">
+                    <div class="category-badge">
+                        <i class="fas fa-folder me-2"></i>
+                        <span th:text="${part.category.getFullPath()}">エンジン系部品 > トルクコンバーター</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ★追加: カテゴリ情報カード -->
+            <div th:if="${part.category != null}" class="category-card card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-folder me-2"></i>カテゴリ情報
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>カテゴリ:</strong>
+                            <div class="mt-2">
+                                <span th:text="${part.category.getFullPath()}" class="h6 text-primary">
+                                    エンジン系部品 > トルクコンバーター
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>カテゴリタイプ:</strong>
+                            <div class="mt-2">
+                                <span th:if="${part.category.parent == null}" class="badge bg-primary">大分類</span>
+                                <span th:if="${part.category.parent != null}" class="badge bg-secondary">小分類</span>
+                                <span th:if="${part.category.parent != null}" class="text-muted ms-2">
+                                    （親: <span th:text="${part.category.parent.name}">エンジン系部品</span>）
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div th:if="${part.category.description != null and !part.category.description.empty}" class="mt-3">
+                        <strong>カテゴリ説明:</strong>
+                        <p class="mt-2 text-muted" th:text="${part.category.description}">カテゴリの詳細説明</p>
+                    </div>
+                    <div class="mt-3">
+                        <a th:href="@{/parts/search(categoryId=${part.category.id})}" class="category-link">
+                            <i class="fas fa-search me-1"></i>
+                            このカテゴリの他の部品を検索
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ★追加: カテゴリ未設定の場合 -->
+            <div th:unless="${part.category != null}" class="no-category">
+                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                <p><strong>カテゴリが設定されていません</strong></p>
+                <p class="small">カテゴリを設定すると検索やフィルタリングが便利になります。</p>
+                <a th:href="@{/parts/{id}/edit(id=${part.id})}" class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-edit me-1"></i>カテゴリを設定する
+                </a>
             </div>
 
             <!-- 基本情報グリッド -->
@@ -279,41 +519,90 @@
                     <span th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
                         | <strong>更新:</strong> <span th:text="${#temporals.format(part.updatedAt, 'yyyy/MM/dd HH:mm:ss')}">2024/09/04 12:15:30</span>
                     </span>
+                    <!-- ★追加: カテゴリ情報 -->
+                    <span th:if="${part.category != null}">
+                        | <strong>カテゴリ:</strong> <span th:text="${part.category.getFullPath()}">エンジン系部品 > トルクコンバーター</span>
+                    </span>
                 </small>
             </div>
 
-            <!-- アクションボタン -->
-            <div class="row">
-                <div class="col-12 text-center">
-                    <div class="btn-group-mobile d-md-block">
-                        <!-- 編集ボタン -->
-                        <a th:href="@{/parts/{id}/edit(id=${part.id})}" class="btn btn-warning-custom">
-                            <i class="fas fa-edit me-2"></i>編集する
-                        </a>
-                        
-                        <!-- 削除ボタン -->
-                        <form th:action="@{/parts/{id}/delete(id=${part.id})}" 
-                              method="post" 
-                              style="display: inline;"
-                              onsubmit="return confirmDelete()">
-                            <button type="submit" class="btn btn-danger-custom">
-                                <i class="fas fa-trash me-2"></i>削除する
-                            </button>
-                        </form>
-                        
-                        <!-- 一覧に戻るボタン -->
-                        <a href="/parts" class="btn btn-secondary-custom">
-                            <i class="fas fa-list me-2"></i>一覧に戻る
-                        </a>
-                        
-                        <!-- 新規登録ボタン -->
-                        <a href="/parts/new" class="btn btn-custom">
-                            <i class="fas fa-plus me-2"></i>新規登録
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+			<!-- アクションボタン -->
+			<div class="row">
+			    <div class="col-12">
+			        <!-- デスクトップ表示 -->
+			        <div class="d-none d-md-block text-center">
+			            <div class="d-flex flex-wrap justify-content-center gap-2">
+			                <!-- 編集ボタン -->
+			                <a th:href="@{/parts/{id}/edit(id=${part.id})}" class="btn btn-warning-custom">
+			                    <i class="fas fa-edit me-2"></i>編集する
+			                </a>
+			                
+			                <!-- 削除ボタン -->
+			                <form th:action="@{/parts/{id}/delete(id=${part.id})}" 
+			                      method="post" 
+			                      style="display: inline;"
+			                      onsubmit="return confirmDelete()">
+			                    <button type="submit" class="btn btn-danger-custom">
+			                        <i class="fas fa-trash me-2"></i>削除する
+			                    </button>
+			                </form>
+			                
+			                <!-- カテゴリ検索ボタン -->
+			                <a th:if="${part.category != null}" 
+			                   th:href="@{/parts/search(categoryId=${part.category.id})}" 
+			                   class="btn btn-custom">
+			                    <i class="fas fa-search me-2"></i>同カテゴリ検索
+			                </a>
+			                
+			                <!-- 一覧に戻るボタン -->
+			                <a href="/parts" class="btn btn-secondary-custom">
+			                    <i class="fas fa-list me-2"></i>一覧に戻る
+			                </a>
+			                
+			                <!-- 新規登録ボタン -->
+			                <a href="/parts/new" class="btn btn-custom">
+			                    <i class="fas fa-plus me-2"></i>新規登録
+			                </a>
+			            </div>
+			        </div>
+
+			        <!-- モバイル表示 -->
+			        <div class="d-md-none">
+			            <div class="btn-group-mobile">
+			                <!-- 編集ボタン -->
+			                <a th:href="@{/parts/{id}/edit(id=${part.id})}" class="btn btn-warning-custom">
+			                    <i class="fas fa-edit me-2"></i>編集する
+			                </a>
+			                
+			                <!-- 削除ボタン -->
+			                <form th:action="@{/parts/{id}/delete(id=${part.id})}" 
+			                      method="post" 
+			                      onsubmit="return confirmDelete()">
+			                    <button type="submit" class="btn btn-danger-custom w-100">
+			                        <i class="fas fa-trash me-2"></i>削除する
+			                    </button>
+			                </form>
+			                
+			                <!-- カテゴリ検索ボタン -->
+			                <a th:if="${part.category != null}" 
+			                   th:href="@{/parts/search(categoryId=${part.category.id})}" 
+			                   class="btn btn-custom">
+			                    <i class="fas fa-search me-2"></i>同カテゴリ検索
+			                </a>
+			                
+			                <!-- 一覧に戻るボタン -->
+			                <a href="/parts" class="btn btn-secondary-custom">
+			                    <i class="fas fa-list me-2"></i>一覧に戻る
+			                </a>
+			                
+			                <!-- 新規登録ボタン -->
+			                <a href="/parts/new" class="btn btn-custom">
+			                    <i class="fas fa-plus me-2"></i>新規登録
+			                </a>
+			            </div>
+			        </div>
+			    </div>
+			</div>
 
         <!-- フッター -->
         <div class="text-center mt-5 mb-3">

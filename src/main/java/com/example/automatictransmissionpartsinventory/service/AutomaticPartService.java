@@ -2,11 +2,14 @@ package com.example.automatictransmissionpartsinventory.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import org.hibernate.service.spi.ServiceException;
+import org.springframework.data.domain.Page;
 
+import com.example.automatictransmissionpartsinventory.dto.AdvancedSearchCriteria;
 import com.example.automatictransmissionpartsinventory.entity.AutomativePart;
+import com.example.automatictransmissionpartsinventory.exception.ServiceException;
 
 /**
  * AT部品管理サービスインターフェース
@@ -89,10 +92,12 @@ public interface AutomaticPartService {
      * @param manufacturer 製造者（完全一致、nullの場合は条件に含めない）
      * @param minPrice 最低価格（nullの場合は条件に含めない）
      * @param maxPrice 最高価格（nullの場合は条件に含めない）
+     * @param categoryId 
      * @return 該当するAT部品リスト
      */
     List<AutomativePart> findByConditions(String partName, String manufacturer, 
-                                         BigDecimal minPrice, BigDecimal maxPrice);
+            BigDecimal minPrice, BigDecimal maxPrice, 
+            Long categoryId);
 
     /**
      * 部品番号の重複チェック
@@ -101,4 +106,40 @@ public interface AutomaticPartService {
      * @return 重複している場合true
      */
     boolean isPartNumberDuplicated(String partNumber, Long excludeId);
+ // ========================================
+    // Phase 8.3 Step 6-1で追加: 高度検索機能
+    // ========================================
+    
+    /**
+     * 高度検索機能
+     * 複数の検索条件を組み合わせた検索を実行
+     * 
+     * @param criteria 検索条件
+     * @return 検索結果（ページネーション対応）
+     */
+    Page<AutomativePart> searchByAdvancedCriteria(AdvancedSearchCriteria criteria) throws ServiceException;
+    
+    /**
+     * 高度検索の検索結果件数取得
+     * 
+     * @param criteria 検索条件
+     * @return 検索結果の総件数
+     */
+    long countByAdvancedCriteria(AdvancedSearchCriteria criteria) throws ServiceException;
+    
+    /**
+     * 検索条件の妥当性チェック
+     * 
+     * @param criteria 検索条件
+     * @return 妥当性チェック結果
+     */
+    Map<String, String> validateSearchCriteria(AdvancedSearchCriteria criteria) throws ServiceException;
+    
+    /**
+     * 検索統計情報の取得
+     * 
+     * @param criteria 検索条件
+     * @return 検索統計情報
+     */
+    Map<String, Object> getSearchStatistics(AdvancedSearchCriteria criteria) throws ServiceException;
 }

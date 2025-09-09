@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カテゴリフォーム</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- ページヘッダー -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="h2">
+                    <i class="bi bi-folder-plus text-primary" th:if="${!isEdit}"></i>
+                    <i class="bi bi-pencil-square text-warning" th:if="${isEdit}"></i>
+                    <span th:text="${isEdit ? 'カテゴリ編集' : '新規カテゴリ作成'}">カテゴリフォーム</span>
+                </h1>
+            </div>
+            <div class="col-auto">
+                <a href="/admin/categories" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span th:text="${errorMessage}">エラーメッセージ</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- フォーム -->
+        <div class="row">
+            <div class="col-lg-8">
+                <form th:action="${isEdit ? '/admin/categories/' + category.id + '/edit' : '/admin/categories/new'}" 
+                      th:object="${category}" 
+                      method="post">
+                    
+                    <!-- 基本情報カード -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-info-circle"></i> 基本情報
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- カテゴリ名 -->
+                            <div class="mb-3">
+                                <label for="name" class="form-label">
+                                    カテゴリ名 <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="name" 
+                                       th:field="*{name}"
+                                       th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''"
+                                       placeholder="例: エンジン系部品、ギア類"
+                                       maxlength="100"
+                                       required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
+                                    カテゴリ名エラー
+                                </div>
+                                <div class="form-text">100文字以内で入力してください</div>
+                            </div>
+
+                            <!-- 説明 -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label">説明・備考</label>
+                                <textarea class="form-control" 
+                                          id="description" 
+                                          th:field="*{description}"
+                                          rows="3"
+                                          placeholder="このカテゴリの詳細説明や備考を入力してください（任意）"></textarea>
+                                <div class="form-text">このカテゴリの用途や特徴を説明してください（任意）</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 階層設定カード -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-diagram-3"></i> 階層設定
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 親カテゴリ選択 -->
+                            <div class="mb-3">
+                                <label for="parent" class="form-label">親カテゴリ</label>
+                                <select class="form-select" id="parent" th:field="*{parent}">
+                                    <option value="">大分類として作成（親カテゴリなし）</option>
+                                    <option th:each="parentCategory : ${parentCategories}" 
+                                            th:value="${parentCategory.id}" 
+                                            th:text="${parentCategory.name}"
+                                            th:selected="${category.parent != null and category.parent.id == parentCategory.id}">
+                                        親カテゴリ名
+                                    </option>
+                                </select>
+                                <div class="form-text">
+                                    小分類として作成する場合は親カテゴリを選択してください
+                                </div>
+                            </div>
+
+                            <!-- 表示順序 -->
+                            <div class="mb-3">
+                                <label for="displayOrder" class="form-label">表示順序</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="displayOrder" 
+                                       th:field="*{displayOrder}"
+                                       min="0"
+                                       max="999"
+                                       placeholder="0">
+                                <div class="form-text">
+                                    同じ階層内での表示順序（0〜999、小さい順に表示）
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 設定カード -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-gear"></i> 設定
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 有効フラグ -->
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="isActive" 
+                                       th:field="*{isActive}"
+                                       checked>
+                                <label class="form-check-label" for="isActive">
+                                    このカテゴリを有効にする
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                無効にすると部品選択時に表示されなくなります
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ボタン -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-check-circle" th:if="${!isEdit}"></i>
+                            <i class="bi bi-pencil-square" th:if="${isEdit}"></i>
+                            <span th:text="${isEdit ? 'カテゴリを更新' : 'カテゴリを作成'}">保存</span>
+                        </button>
+                        <a href="/admin/categories" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> キャンセル
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- サイドバー -->
+            <div class="col-lg-4">
+                <!-- ヘルプカード -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-lightbulb"></i> カテゴリ作成のヒント
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>階層構造について</h6>
+                        <ul class="small">
+                            <li><strong>大分類</strong>: エンジン系、トランスミッション系など</li>
+                            <li><strong>小分類</strong>: ギア類、センサー類など</li>
+                            <li>3階層以上は作成できません</li>
+                        </ul>
+
+                        <h6>命名のコツ</h6>
+                        <ul class="small">
+                            <li>わかりやすく統一的な名前を使用</li>
+                            <li>略語よりも正式名称を推奨</li>
+                            <li>将来の拡張を考慮した命名</li>
+                        </ul>
+
+                        <h6>注意事項</h6>
+                        <ul class="small text-warning">
+                            <li>子カテゴリがある大分類は削除できません</li>
+                            <li>部品が割り当てられているカテゴリは削除できません</li>
+                            <li>カテゴリ名は重複できません</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 現在の情報（編集時） -->
+                <div class="card" th:if="${isEdit and category.id != null}">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> 現在の情報
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>ID</th>
+                                <td th:text="${category.id}">ID</td>
+                            </tr>
+                            <tr>
+                                <th>作成日時</th>
+                                <td th:text="${#temporals.format(category.createdAt, 'yyyy-MM-dd HH:mm')}">作成日時</td>
+                            </tr>
+                            <tr th:if="${category.updatedAt != null}">
+                                <th>更新日時</th>
+                                <td th:text="${#temporals.format(category.updatedAt, 'yyyy-MM-dd HH:mm')}">更新日時</td>
+                            </tr>
+                            <tr>
+                                <th>タイプ</th>
+                                <td>
+                                    <span th:if="${category.parent == null}" class="badge bg-primary">大分類</span>
+                                    <span th:if="${category.parent != null}" class="badge bg-secondary">小分類</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

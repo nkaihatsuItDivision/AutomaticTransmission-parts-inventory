@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カテゴリ詳細</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- ページヘッダー -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="h2">
+                    <i class="bi bi-folder2-open text-primary"></i> カテゴリ詳細
+                </h1>
+            </div>
+            <div class="col-auto">
+                <a href="/admin/categories" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+
+        <!-- 基本情報カード -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> 基本情報
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <tr>
+                                <th>カテゴリ名</th>
+                                <td th:text="${category.name}">カテゴリ名</td>
+                            </tr>
+                            <tr>
+                                <th>説明</th>
+                                <td th:text="${category.description ?: '説明なし'}">説明</td>
+                            </tr>
+                            <tr>
+                                <th>タイプ</th>
+                                <td>
+                                    <span th:if="${category.parent == null}" class="badge bg-primary">大分類</span>
+                                    <span th:if="${category.parent != null}" class="badge bg-secondary">小分類</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>表示順序</th>
+                                <td th:text="${category.displayOrder}">0</td>
+                            </tr>
+                            <tr>
+                                <th>状態</th>
+                                <td>
+                                    <span th:if="${category.isActive}" class="badge bg-success">有効</span>
+                                    <span th:if="${!category.isActive}" class="badge bg-warning">無効</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>作成日時</th>
+                                <td th:text="${#temporals.format(category.createdAt, 'yyyy-MM-dd HH:mm')}">作成日時</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 階層情報 -->
+        <div class="row mt-4" th:if="${category.parent != null or (childCategories != null and not #lists.isEmpty(childCategories))}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-diagram-3"></i> 階層情報
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- 親カテゴリ -->
+                        <div th:if="${category.parent != null}" class="mb-3">
+                            <strong>親カテゴリ:</strong>
+                            <a th:href="@{/admin/categories/{id}(id=${category.parent.id})}" 
+                               th:text="${category.parent.name}">親カテゴリ名</a>
+                        </div>
+                        
+                        <!-- 子カテゴリ -->
+                        <div th:if="${childCategories != null and not #lists.isEmpty(childCategories)}">
+                            <strong>子カテゴリ:</strong>
+                            <ul>
+                                <li th:each="child : ${childCategories}">
+                                    <a th:href="@{/admin/categories/{id}(id=${child.id})}" 
+                                       th:text="${child.name}">子カテゴリ名</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作ボタン -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a th:href="@{/admin/categories/{id}/edit(id=${category.id})}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+                <a href="/admin/categories/new" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> 新規作成
+                </a>
+                <a href="/admin/categories" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function confirmDelete() {
+            const categoryName = document.querySelector('h1').textContent.replace('カテゴリ詳細', '').trim();
+            const categoryId = window.location.pathname.split('/').pop();
+            
+            if (confirm('本当にこのカテゴリを削除しますか？\n\n削除したカテゴリは復元できません。')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/categories/' + categoryId + '/delete';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

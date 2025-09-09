@@ -110,6 +110,111 @@
     </style>
 </head>
 <body class="bg-light">
+	<!-- ナビゲーションバー（権限制御付き） -->
+	<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+	    <div class="container-fluid">
+	        <a class="navbar-brand" href="/parts">
+	            <i class="fas fa-cogs me-2"></i>
+	            AT部品在庫管理システム
+	        </a>
+	        
+	        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+	            <span class="navbar-toggler-icon"></span>
+	        </button>
+	        
+	        <div class="collapse navbar-collapse" id="navbarNav">
+	            <ul class="navbar-nav me-auto">
+	                <!-- 部品管理メニュー（全ユーザー） -->
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts">
+	                        <i class="fas fa-list me-1"></i>
+	                        部品一覧
+	                    </a>
+	                </li>
+					<li class="nav-item">
+					    <a class="nav-link" href="/parts/advanced-search">
+					        <i class="fas fa-search-plus me-1"></i>
+					        高度検索
+					    </a>
+					</li>
+	                <li class="nav-item">
+	                    <a class="nav-link active" href="/parts/new">
+	                        <i class="fas fa-plus me-1"></i>
+	                        部品追加
+	                    </a>
+	                </li>
+	                
+	                <!-- 管理者専用メニュー（管理者のみ表示） -->
+	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+	                    <a class="nav-link" href="/admin">
+	                        <i class="bi bi-speedometer2 me-1"></i>
+	                        管理者ダッシュボード
+	                    </a>
+	                </li>
+					<li class="nav-item" sec:authorize="hasRole('ADMIN')">
+					    <a class="nav-link" href="/admin/categories">
+					        <i class="fas fa-folder me-1"></i>
+					        カテゴリ管理
+					    </a>
+					</li>
+	                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+	                    <a class="nav-link" href="/admin/users">
+	                        <i class="bi bi-people me-1"></i>
+	                        ユーザー管理
+	                    </a>
+	                </li>
+	            </ul>
+	            
+	            <!-- CSV機能（管理者のみ） -->
+	            <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts/export/csv">
+	                        <i class="fas fa-download me-1"></i>
+	                        CSV エクスポート
+	                    </a>
+	                </li>
+	                <li class="nav-item">
+	                    <a class="nav-link" href="/parts/import/csv">
+	                        <i class="fas fa-upload me-1"></i>
+	                        CSV インポート
+	                    </a>
+	                </li>
+	            </ul>
+	            
+	            <!-- ユーザー情報・ログアウト -->
+	            <ul class="navbar-nav">
+	                <li class="nav-item dropdown">
+	                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+	                        <i class="bi bi-person-circle me-1"></i>
+	                        <span sec:authentication="name">ユーザー</span>
+	                        <!-- 権限バッジ表示 -->
+	                        <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+	                        <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
+	                    </a>
+	                    <ul class="dropdown-menu">
+	                        <!-- 管理者専用設定 -->
+	                        <li sec:authorize="hasRole('ADMIN')">
+	                            <a class="dropdown-item" href="/admin/settings">
+	                                <i class="bi bi-gear me-1"></i>システム設定
+	                            </a>
+	                        </li>
+	                        <li sec:authorize="hasRole('ADMIN')">
+	                            <hr class="dropdown-divider">
+	                        </li>
+	                        <li>
+	                            <form th:action="@{/logout}" method="post" class="d-inline">
+	                                <button type="submit" class="dropdown-item">
+	                                    <i class="bi bi-box-arrow-right me-1"></i>ログアウト
+	                                </button>
+	                            </form>
+	                        </li>
+	                    </ul>
+	                </li>
+	            </ul>
+	        </div>
+	    </div>
+	</nav>
+
     <!-- ヘッダー -->
     <div class="header-section">
         <div class="container">
@@ -133,16 +238,16 @@
     </div>
 
     <div class="container">
-        <!-- 入力説明 -->
-        <div class="form-instructions">
-            <h6><i class="fas fa-info-circle me-2"></i>入力について</h6>
-            <ul class="mb-0">
-                <li><span class="required">*</span> マークは必須入力項目です</li>
-                <li>部品番号は半角英数字で入力してください（例：AT001、TR-2024-01）</li>
-                <li>価格は半角数字で入力してください（小数点も可能）</li>
-                <li>説明とメーカーは任意入力です</li>
-            </ul>
-        </div>
+		<!-- 入力説明 -->
+		<div class="form-instructions">
+		    <h6><i class="fas fa-info-circle me-2"></i>入力について</h6>
+		    <ul class="mb-0">
+		        <li><span class="required">*</span> マークは必須入力項目です</li>
+		        <li>部品番号は半角英数字で入力してください（例：AT001、TR-2024-01）</li>
+		        <li>価格は半角数字で入力してください（小数点も可能）</li>
+		        <li>カテゴリ、説明、メーカーは任意入力です</li> <!-- ★修正 -->
+		    </ul>
+		</div>
 
         <!-- フォーム -->
         <div class="form-card">
@@ -224,6 +329,33 @@
                         <small class="form-text text-muted">任意入力です</small>
                     </div>
                 </div>
+				
+				<!-- ★追加: カテゴリ選択 -->
+				<div class="row mb-4">
+				    <div class="col-12">
+				        <label for="category" class="form-label">
+				            <i class="fas fa-folder me-2"></i>カテゴリ
+				        </label>
+				        <select class="form-control" id="category" th:field="*{category}">
+				            <option value="">カテゴリを選択してください（任意）</option>
+				            <!-- 大分類・小分類の階層表示 -->
+				            <th:block th:each="parentCategory : ${categories}" th:if="${parentCategory.parent == null}">
+				                <!-- 大分類 -->
+				                <option th:value="${parentCategory.id}" 
+				                        th:text="'【大分類】' + ${parentCategory.name}"
+				                        th:selected="${part.category != null and part.category.id == parentCategory.id}">
+				                </option>
+				                <!-- 小分類 -->
+				                <option th:each="childCategory : ${parentCategory.children}"
+				                        th:value="${childCategory.id}" 
+				                        th:text="'　├ ' + ${childCategory.name}"
+				                        th:selected="${part.category != null and part.category.id == childCategory.id}">
+				                </option>
+				            </th:block>
+				        </select>
+				        <small class="form-text text-muted">部品の分類を選択すると検索やフィルタリングが便利になります</small>
+				    </div>
+				</div>
 
                 <!-- 説明 -->
                 <div class="row mb-4">
@@ -251,6 +383,9 @@
                             <span th:if="${part.updatedAt != null and part.updatedAt != part.createdAt}">
                                 / 最終更新 <span th:text="${#temporals.format(part.updatedAt, 'yyyy年MM月dd日 HH:mm')}">2024年09月04日 12:15</span>
                             </span>
+							<span th:if="${part.category != null}">
+							    / カテゴリ：<span th:text="${part.category.getFullPath()}">カテゴリ名</span>
+							</span>
                         </div>
                     </div>
                 </div>
