@@ -2,7 +2,7 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AT部品在庫管理システム - ユーザー管理</title>
     
     <!-- Bootstrap 5.3 CSS -->
@@ -12,7 +12,6 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
-    <!-- カスタムCSS（部品一覧画面と完全統一） -->
     <style>
         .navbar-brand {
             font-weight: bold;
@@ -23,90 +22,31 @@
             padding: 2rem 0;
             margin-bottom: 2rem;
         }
-        .search-card {
-            border: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            border-radius: 15px;
-        }
-        .parts-table {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        .parts-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-            border: none;
-            padding: 1rem;
-        }
-        .parts-table td {
-            padding: 1rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .parts-table tbody tr:hover {
+        .table th {
             background-color: #f8f9fa;
-            transform: translateY(-1px);
-            transition: all 0.2s ease;
-        }
-        .btn-action {
-            margin: 0 2px;
-            border-radius: 8px;
-        }
-        .no-data {
-            text-align: center;
-            padding: 3rem;
-            color: #6c757d;
-        }
-        .no-data i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-        /* ユーザー管理特有のスタイル */
-        .role-badge {
-            font-size: 0.75rem;
-        }
-        .admin-badge {
-            background-color: #dc3545;
-        }
-        .user-badge {
-            background-color: #17a2b8;
+            font-weight: 600;
         }
         .user-avatar {
             width: 40px;
             height: 40px;
-            background: linear-gradient(45deg, #007bff, #6f42c1);
             border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 16px;
-        }
-        .stats-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            line-height: 1;
-        }
-        .stats-label {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            font-weight: 600;
-            opacity: 0.8;
+            margin-right: 10px;
         }
     </style>
 </head>
 <body class="bg-light">
-    <!-- ナビゲーションバー（権限制御付き） -->
+    
+    <!-- ナビゲーションバー -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container-fluid">
             <a class="navbar-brand" href="/parts">
-                <i class="fas fa-cogs me-2"></i>
-                AT部品在庫管理システム
+                <i class="fas fa-cogs me-2"></i>AT部品在庫管理システム
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -115,83 +55,30 @@
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <!-- 部品管理メニュー（全ユーザー） -->
                     <li class="nav-item">
                         <a class="nav-link" href="/parts">
-                            <i class="fas fa-list me-1"></i>
-                            部品一覧
+                            <i class="fas fa-list me-1"></i>部品一覧
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/parts/advanced-search">
-                            <i class="fas fa-search-plus me-1"></i>
-                            高度検索
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/parts/new">
-                            <i class="fas fa-plus me-1"></i>
-                            部品追加
-                        </a>
-                    </li>
-                    
-                    <!-- 管理者専用メニュー（管理者のみ表示） -->
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                         <a class="nav-link" href="/admin">
-                            <i class="bi bi-speedometer2 me-1"></i>
-                            管理者ダッシュボード
-                        </a>
-                    </li>
-                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                        <a class="nav-link" href="/admin/categories">
-                            <i class="fas fa-folder me-1"></i>
-                            カテゴリ管理
+                            <i class="bi bi-speedometer2 me-1"></i>管理者ダッシュボード
                         </a>
                     </li>
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                         <a class="nav-link active" href="/admin/users">
-                            <i class="bi bi-people me-1"></i>
-                            ユーザー管理
+                            <i class="bi bi-people me-1"></i>ユーザー管理
                         </a>
                     </li>
                 </ul>
                 
-                <!-- CSV機能（管理者のみ） -->
-                <ul class="navbar-nav me-3" sec:authorize="hasRole('ADMIN')">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/parts/export/csv">
-                            <i class="fas fa-download me-1"></i>
-                            CSV エクスポート
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/parts/import/csv">
-                            <i class="fas fa-upload me-1"></i>
-                            CSV インポート
-                        </a>
-                    </li>
-                </ul>
-                
-                <!-- ユーザー情報・ログアウト -->
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-1"></i>
                             <span sec:authentication="name">ユーザー</span>
-                            <!-- 権限バッジ表示 -->
-                            <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
-                            <span sec:authorize="hasRole('USER') and !hasRole('ADMIN')" class="badge bg-info ms-1">USER</span>
                         </a>
                         <ul class="dropdown-menu">
-                            <!-- 管理者専用設定 -->
-                            <li sec:authorize="hasRole('ADMIN')">
-                                <a class="dropdown-item" href="/admin/settings">
-                                    <i class="bi bi-gear me-1"></i>システム設定
-                                </a>
-                            </li>
-                            <li sec:authorize="hasRole('ADMIN')">
-                                <hr class="dropdown-divider">
-                            </li>
                             <li>
                                 <form th:action="@{/logout}" method="post" class="d-inline">
                                     <button type="submit" class="dropdown-item">
@@ -212,216 +99,129 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="mb-0">
-                        <i class="bi bi-people me-3"></i>
-                        ユーザー管理
+                        <i class="fas fa-users me-3"></i>ユーザー管理
                     </h1>
-                    <p class="mb-0 mt-2 opacity-75">システム利用者の管理・権限設定を行います</p>
+                    <p class="mb-0 mt-2 opacity-75">システムユーザーの登録・編集・権限管理</p>
                 </div>
                 <div class="col-auto">
-                    <button type="button" class="btn btn-light btn-lg" onclick="location.reload()">
-                        <i class="bi bi-arrow-clockwise me-2"></i>更新
-                    </button>
+                    <a href="/admin/users/new" class="btn btn-light btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>新規ユーザー登録
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- メインコンテンツ -->
     <div class="container">
-        <!-- エラーメッセージ表示 -->
+        <!-- メッセージ表示 -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
         <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <i class="fas fa-exclamation-triangle me-2"></i>
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
-        <!-- ユーザー統計情報 -->
-        <div class="row mb-4">
-            <div class="col-md-4 mb-4">
-                <div class="search-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
-                    <div class="card-body text-center">
-                        <div class="stats-number" th:text="${#lists.size(allUsers)}">0</div>
-                        <div class="stats-label">総ユーザー数</div>
-                        <i class="bi bi-people-fill mt-2" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
+        <!-- ユーザー一覧テーブル -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>ユーザー一覧
+                </h5>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="search-card" style="background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%); color: white;">
-                    <div class="card-body text-center">
-                        <div class="stats-number" th:text="${#lists.size(adminUsers)}">0</div>
-                        <div class="stats-label">管理者</div>
-                        <i class="bi bi-shield-fill-check mt-2" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="search-card" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white;">
-                    <div class="card-body text-center">
-                        <div class="stats-number" th:text="${#lists.size(regularUsers)}">0</div>
-                        <div class="stats-label">一般ユーザー</div>
-                        <i class="bi bi-person-fill mt-2" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 全ユーザー一覧 -->
-        <div class="card parts-table">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="mb-0">全ユーザー一覧</h5>
-                        <small class="text-muted" th:text="'全 ' + ${#lists.size(allUsers)} + ' 名のユーザー'">全 0 名のユーザー</small>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <!-- ユーザーデータがある場合 -->
-                <div th:if="${allUsers != null and !#lists.isEmpty(allUsers)}">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <i class="bi bi-person me-1"></i>
-                                        ユーザー
-                                    </th>
-                                    <th>
-                                        <i class="bi bi-envelope me-1"></i>
-                                        ユーザー名
-                                    </th>
-                                    <th>
-                                        <i class="bi bi-shield me-1"></i>
-                                        権限
-                                    </th>
-                                    <th>
-                                        <i class="bi bi-clock me-1"></i>
-                                        作成日時
-                                    </th>
-                                    <th class="text-center">
-                                        <i class="bi bi-gear me-1"></i>
-                                        操作
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="user : ${allUsers}">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="user-avatar me-3" th:text="${#strings.substring(user.username, 0, 1).toUpperCase()}">A</div>
-                                            <div>
-                                                <div class="fw-bold" th:text="${user.username}">ユーザー名</div>
-                                                <small class="text-muted">ID: <span th:text="${user.id}">1</span></small>
-                                            </div>
+            
+            <div class="card-body p-0" th:if="${not #lists.isEmpty(users)}">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ユーザー</th>
+                                <th>ユーザー名</th>
+                                <th>メールアドレス</th>
+                                <th>権限</th>
+                                <th>状態</th>
+                                <th>登録日時</th>
+                                <th class="text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="user : ${users}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar" th:text="${#strings.substring(user.fullName, 0, 1)}">U</div>
+                                        <div>
+                                            <div class="fw-bold" th:text="${user.fullName}">表示名</div>
+                                            <small class="text-muted" th:text="'ID: ' + ${user.id}">ID</small>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <span th:text="${user.username}">username</span>
-                                    </td>
-                                    <td>
-                                        <div th:each="role : ${user.roles}">
-                                            <span th:if="${role.roleName == 'ROLE_ADMIN'}" class="badge role-badge admin-badge">
-                                                <i class="bi bi-shield-fill-check me-1"></i>
-                                                管理者
-                                            </span>
-                                            <span th:if="${role.roleName == 'ROLE_USER'}" class="badge role-badge user-badge">
-                                                <i class="bi bi-person-fill me-1"></i>
-                                                一般ユーザー
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span th:if="${user.createdAt}" th:text="${#temporals.format(user.createdAt, 'yyyy/MM/dd HH:mm')}">
-                                            2025/09/05 10:00
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong th:text="${user.username}">username</strong>
+                                </td>
+                                <td th:text="${user.email}">email@example.com</td>
+                                <td>
+                                    <div th:each="role : ${user.roles}">
+                                        <span th:if="${role.roleName == 'ROLE_ADMIN'}" class="badge bg-danger">
+                                            <i class="fas fa-user-shield me-1"></i>管理者
                                         </span>
-                                        <span th:unless="${user.createdAt}" class="text-muted">
-                                            未設定
+                                        <span th:if="${role.roleName == 'ROLE_USER'}" class="badge bg-primary">
+                                            <i class="fas fa-user me-1"></i>一般ユーザー
                                         </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <button class="btn btn-outline-info btn-sm btn-action" type="button">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- データが存在しない場合 -->
-                <div th:if="${allUsers == null or #lists.isEmpty(allUsers)}" class="no-data">
-                    <i class="bi bi-people"></i>
-                    <h5>ユーザーが登録されていません</h5>
-                    <p class="mb-3">システムにユーザーが登録されていません。</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 権限別ユーザー表示 -->
-        <div class="row mt-4">
-            <!-- 管理者ユーザー -->
-            <div class="col-lg-6 mb-4">
-                <div class="card parts-table">
-                    <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                        <h6 class="mb-0" style="color: #dc3545;">
-                            <i class="bi bi-shield-fill-check me-2"></i>
-                            管理者ユーザー
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div th:if="${!#lists.isEmpty(adminUsers)}">
-                            <div th:each="admin : ${adminUsers}" class="d-flex align-items-center mb-3">
-                                <div class="user-avatar me-3" th:text="${#strings.substring(admin.username, 0, 1).toUpperCase()}">A</div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold" th:text="${admin.username}">admin</div>
-                                    <small class="text-muted">管理者権限</small>
-                                </div>
-                                <span class="badge admin-badge">ADMIN</span>
-                            </div>
-                        </div>
-                        <div th:if="${#lists.isEmpty(adminUsers)}" class="text-center py-3">
-                            <i class="bi bi-shield text-muted" style="font-size: 2rem;"></i>
-                            <p class="text-muted mt-2 mb-0">管理者ユーザーが存在しません</p>
-                        </div>
-                    </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span th:if="${user.enabled}" class="text-success">有効</span>
+                                    <span th:unless="${user.enabled}" class="text-danger">無効</span>
+                                </td>
+                                <td th:text="${#temporals.format(user.createdAt, 'yyyy/MM/dd HH:mm')}">
+                                    2025/09/10 15:30
+                                </td>
+								<!-- 操作ボタン部分を修正 -->
+								<td class="text-center">
+								    <div class="btn-group" role="group">
+								        <!-- 編集ボタン（既存） -->
+								        <a th:href="@{/admin/users/{id}/edit(id=${user.id})}" 
+								           class="btn btn-outline-primary btn-sm" 
+								           title="編集">
+								            <i class="fas fa-edit"></i>
+								        </a>
+								        
+								        <!-- 削除ボタン（自分以外に表示） -->
+								        <button type="button" 
+								                class="btn btn-outline-danger btn-sm"
+								                title="削除"
+								                th:unless="${user.username == #authentication.principal.username}"
+								                data-bs-toggle="modal" 
+								                th:data-bs-target="'#deleteModal-' + ${user.id}">
+								            <i class="fas fa-trash"></i>
+								        </button>
+								        
+								        <!-- 自分自身の場合の保護表示 -->
+								        <span th:if="${user.username == #authentication.principal.username}"
+								              class="badge bg-info ms-1"
+								              title="現在ログイン中のため削除できません">
+								            <i class="fas fa-user-shield"></i> ログイン中
+								        </span>
+								    </div>
+								</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <!-- 一般ユーザー -->
-            <div class="col-lg-6 mb-4">
-                <div class="card parts-table">
-                    <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                        <h6 class="mb-0" style="color: #17a2b8;">
-                            <i class="bi bi-person-fill me-2"></i>
-                            一般ユーザー
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div th:if="${!#lists.isEmpty(regularUsers)}">
-                            <div th:each="user : ${regularUsers}" class="d-flex align-items-center mb-3">
-                                <div class="user-avatar me-3" th:text="${#strings.substring(user.username, 0, 1).toUpperCase()}">U</div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold" th:text="${user.username}">user</div>
-                                    <small class="text-muted">一般ユーザー権限</small>
-                                </div>
-                                <span class="badge user-badge">USER</span>
-                            </div>
-                        </div>
-                        <div th:if="${#lists.isEmpty(regularUsers)}" class="text-center py-3">
-                            <i class="bi bi-person text-muted" style="font-size: 2rem;"></i>
-                            <p class="text-muted mt-2 mb-0">一般ユーザーが存在しません</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 戻るボタン -->
-        <div class="row mt-4">
-            <div class="col">
-                <a href="/admin" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> 管理者ダッシュボードに戻る
+            
+            <!-- ユーザーが存在しない場合 -->
+            <div class="card-body text-center py-5" th:if="${#lists.isEmpty(users)}">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">ユーザーが登録されていません</h5>
+                <p class="text-muted mb-3">新しいユーザーを登録してください。</p>
+                <a th:href="@{/admin/users/new}" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>新規ユーザー登録
                 </a>
             </div>
         </div>
@@ -431,23 +231,50 @@
             <small class="text-muted">AT部品在庫管理システム &copy; 2025</small>
         </div>
     </div>
+	<!-- 削除確認モーダル（各ユーザーごと） -->
+	<div th:each="user : ${users}" 
+	     th:id="'deleteModal-' + ${user.id}" 
+	     class="modal fade" 
+	     tabindex="-1" 
+	     role="dialog">
+	    <div class="modal-dialog modal-dialog-centered">
+	        <div class="modal-content">
+	            <div class="modal-header bg-danger text-white">
+	                <h5 class="modal-title">
+	                    <i class="fas fa-exclamation-triangle me-2"></i>削除確認
+	                </h5>
+	                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <div class="text-center mb-3">
+	                    <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+	                    <h6>本当に削除しますか？</h6>
+	                </div>
+	                <div class="alert alert-warning">
+	                    <i class="fas fa-exclamation-triangle me-2"></i>
+	                    <strong>ユーザー：</strong><span th:text="${user.fullName}"></span><br>
+	                    <strong>ユーザー名：</strong><span th:text="${user.username}"></span><br>
+	                    <small class="text-muted">この操作は元に戻すことができません。</small>
+	                </div>
+	            </div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+	                    <i class="fas fa-times me-1"></i>キャンセル
+	                </button>
+	                <form th:action="@{/admin/users/{id}/delete(id=${user.id})}" 
+	                      method="post" 
+	                      style="display: inline;">
+	                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+	                    <button type="submit" class="btn btn-danger">
+	                        <i class="fas fa-trash me-1"></i>削除実行
+	                    </button>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+	</div>
 
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // ユーザーアバターの色をランダムに設定
-        document.querySelectorAll('.user-avatar').forEach(avatar => {
-            const colors = [
-                'linear-gradient(45deg, #007bff, #6f42c1)',
-                'linear-gradient(45deg, #28a745, #20c997)',
-                'linear-gradient(45deg, #dc3545, #e83e8c)',
-                'linear-gradient(45deg, #fd7e14, #ffc107)',
-                'linear-gradient(45deg, #6610f2, #6f42c1)'
-            ];
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            avatar.style.background = randomColor;
-        });
-    </script>
 </body>
 </html>

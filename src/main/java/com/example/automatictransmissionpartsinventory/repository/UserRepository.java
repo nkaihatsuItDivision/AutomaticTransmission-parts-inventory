@@ -102,4 +102,45 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r.roleName = :roleName")
     long countByRoleName(@Param("roleName") String roleName);
+    
+    /**
+     * 有効な管理者ユーザー数をカウント
+     * （最後の管理者削除/無効化防止用）
+     */
+    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.roleName = :roleName AND u.enabled = true")
+    long countByRoleNameAndEnabledTrue(@Param("roleName") String roleName);
+    
+    /**
+     * 指定したIDを除いてユーザー名の重複チェック
+     * （編集時の重複チェック用）
+     */
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.username = :username AND u.id != :id")
+    boolean existsByUsernameAndIdNot(@Param("username") String username, @Param("id") Long id);
+    
+    /**
+     * 指定したIDを除いてメールアドレスの重複チェック
+     * （編集時の重複チェック用）
+     */
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email = :email AND u.id != :id")
+    boolean existsByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
+    
+    /**
+     * 権限名と有効状態でユーザーを検索
+     */
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.roleName = :roleName AND u.enabled = :enabled")
+    List<User> findByRoleNameAndEnabled(@Param("roleName") String roleName, @Param("enabled") boolean enabled);
+    
+    /**
+     * ユーザー名やメールアドレスで部分一致検索
+     * （将来的な検索機能用）
+     */
+    @Query("SELECT u FROM User u WHERE u.username LIKE %:keyword% OR u.email LIKE %:keyword% OR u.fullName LIKE %:keyword%")
+    List<User> findByKeyword(@Param("keyword") String keyword);
+    
+    /**
+     * 権限名でユーザーをページネーション付きで取得
+     * （将来的なページング機能用）
+     */
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.roleName = :roleName ORDER BY u.id DESC")
+    List<User> findByRoleNameOrderByIdDesc(@Param("roleName") String roleName);
 }

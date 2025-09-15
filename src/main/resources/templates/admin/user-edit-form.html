@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー編集 - AT部品在庫管理システム</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6.4.0 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        /* UI統一のためのCSS（list.html基準） */
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
+        
+        .search-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+        }
+        
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+        }
+        
+        .password-field {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションバー（統一デザイン） -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="fas fa-cogs me-2"></i>AT部品在庫管理システム
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/parts}"><i class="fas fa-list me-1"></i>部品一覧</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/parts/advanced-search}"><i class="fas fa-search me-1"></i>高度検索</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link active" th:href="@{/admin}"><i class="fas fa-tachometer-alt me-1"></i>管理者ダッシュボード</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i><span sec:authentication="principal.username">ユーザー</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/logout}"><i class="fas fa-sign-out-alt me-1"></i>ログアウト</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ヘッダーセクション -->
+    <div class="header-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="h2 mb-3">
+                        <i class="fas fa-user-edit me-2"></i>ユーザー編集
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb bg-transparent mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="#" th:href="@{/admin}" class="text-white-50">
+                                    <i class="fas fa-home me-1"></i>管理者ダッシュボード
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="#" th:href="@{/admin/users}" class="text-white-50">ユーザー管理</a>
+                            </li>
+                            <li class="breadcrumb-item active text-white" aria-current="page">ユーザー編集</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="container mb-5">
+        <!-- メッセージ表示 -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- 編集フォームカード -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card search-card">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user-edit me-2 text-primary"></i>
+                            ユーザー情報編集
+                        </h5>
+                    </div>
+                    
+                    <div class="card-body">
+                        <form th:action="@{/admin/users/{id}(id=${user.id})}" 
+                              th:object="${user}" 
+                              method="post" 
+                              autocomplete="off">
+                            
+                            <!-- CSRF対策 -->
+                            <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            
+                            <!-- ユーザーID（隠しフィールド） -->
+                            <input type="hidden" th:field="*{id}"/>
+                            
+                            <div class="row">
+                                <!-- ユーザー名 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label required">ユーザー名</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="username"
+										   name="username" 
+                                           th:field="*{username}"
+                                           th:classappend="${#fields.hasErrors('username')} ? 'is-invalid' : ''"
+                                           placeholder="ユーザー名を入力"
+                                           maxlength="50"
+                                           required>
+                                    <div th:if="${#fields.hasErrors('username')}" 
+                                         class="invalid-feedback" 
+                                         th:errors="*{username}"></div>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        3文字以上50文字以下で入力してください
+                                    </div>
+                                </div>
+                                
+                                <!-- メールアドレス -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label required">メールアドレス</label>
+                                    <input type="email" 
+                                           class="form-control" 
+                                           id="email"
+										   name="email"
+                                           th:field="*{email}"
+                                           th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
+                                           placeholder="メールアドレスを入力"
+                                           maxlength="255"
+                                           required>
+                                    <div th:if="${#fields.hasErrors('email')}" 
+                                         class="invalid-feedback" 
+                                         th:errors="*{email}"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- パスワード変更セクション -->
+                            <div class="mb-4">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           id="changePasswordCheck">
+                                    <label class="form-check-label" for="changePasswordCheck">
+                                        パスワードを変更する
+                                    </label>
+                                </div>
+                                
+                                <div id="passwordFields" style="display: none;">
+                                    <div class="row">
+                                        <!-- 新しいパスワード -->
+                                        <div class="col-md-6 mb-3">
+                                            <label for="password" class="form-label">新しいパスワード</label>
+                                            <div class="password-field">
+                                                <input type="password" 
+                                                       class="form-control" 
+                                                       id="password"
+                                                       name="password"
+                                                       placeholder="新しいパスワードを入力"
+                                                       minlength="6"
+                                                       maxlength="100">
+                                                <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                                            </div>
+                                            <div class="form-text">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                6文字以上で入力してください
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- パスワード確認 -->
+                                        <div class="col-md-6 mb-3">
+                                            <label for="confirmPassword" class="form-label">パスワード確認</label>
+                                            <div class="password-field">
+                                                <input type="password" 
+                                                       class="form-control" 
+                                                       id="confirmPassword"
+                                                       name="confirmPassword"
+                                                       placeholder="パスワードを再入力"
+                                                       minlength="6"
+                                                       maxlength="100">
+                                                <i class="fas fa-eye password-toggle" id="toggleConfirmPassword"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+								<!-- 氏名 -->
+								<div class="col-12 mb-3">
+								    <label for="fullName" class="form-label required">氏名</label>
+								    <input type="text" 
+								           class="form-control" 
+								           id="fullName"
+								           name="fullName"
+								           th:field="*{fullName}"
+								           placeholder="氏名を入力"
+								           maxlength="100"
+								           required>
+								</div>
+                                <!-- 権限設定 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="roleName" class="form-label required">権限</label>
+                                    <select class="form-select" 
+                                            id="roleName" 
+                                            name="roleName" 
+                                            required>
+                                        <option value="">権限を選択してください</option>
+                                        <option th:each="role : ${roles}" 
+                                                th:value="${role.roleName}" 
+                                                th:text="${role.description}"
+                                                th:selected="${role.roleName == currentRole}">
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <!-- アカウント状態 -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">アカウント状態</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" 
+                                               type="checkbox" 
+                                               id="enabled"
+											   name="enabled" 
+                                               th:field="*{enabled}">
+                                        <label class="form-check-label" for="enabled">
+                                            <span th:text="*{enabled} ? '有効' : '無効'">有効</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        無効にするとログインできなくなります
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- ボタン -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a th:href="@{/admin/users}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>戻る
+                                </a>
+                                
+                                <div>
+                                    <button type="reset" class="btn btn-outline-secondary me-2">
+                                        <i class="fas fa-undo me-2"></i>リセット
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>更新
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // パスワード変更チェックボックスの制御
+        document.getElementById('changePasswordCheck').addEventListener('change', function() {
+            const passwordFields = document.getElementById('passwordFields');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            
+            if (this.checked) {
+                passwordFields.style.display = 'block';
+                passwordInput.required = true;
+                confirmPasswordInput.required = true;
+            } else {
+                passwordFields.style.display = 'none';
+                passwordInput.required = false;
+                confirmPasswordInput.required = false;
+                passwordInput.value = '';
+                confirmPasswordInput.value = '';
+            }
+        });
+        
+        // パスワード表示/非表示の切り替え
+        function togglePasswordVisibility(inputId, toggleId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = document.getElementById(toggleId);
+            
+            toggleIcon.addEventListener('click', function() {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleIcon.classList.remove('fa-eye');
+                    toggleIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    toggleIcon.classList.remove('fa-eye-slash');
+                    toggleIcon.classList.add('fa-eye');
+                }
+            });
+        }
+        
+        togglePasswordVisibility('password', 'togglePassword');
+        togglePasswordVisibility('confirmPassword', 'toggleConfirmPassword');
+        
+        // パスワード一致チェック
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            
+            if (password !== confirmPassword && confirmPassword !== '') {
+                this.setCustomValidity('パスワードが一致しません');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // アカウント状態の表示更新
+        document.getElementById('enabled').addEventListener('change', function() {
+            const label = this.nextElementSibling.querySelector('span');
+            label.textContent = this.checked ? '有効' : '無効';
+        });
+    </script>
+</body>
+</html>
